@@ -15,53 +15,32 @@
   <script src="../../js/settings.js"></script>
   <script src="../../js/games-data.js"></script>
   <script src="../shared/engine.js"></script>
+  <script src="../shared/countries.js"></script>
   <script>
-    // [flag, country, capital]. English country names that need "the" have it in `the`.
-    var COUNTRIES = [
-      ["🇦🇲", { en: "Armenia", hy: "Հայաստան", ru: "Армения" }, { en: "Yerevan", hy: "Երևան", ru: "Ереван" }],
-      ["🇫🇷", { en: "France", hy: "Ֆրանսիա", ru: "Франция" }, { en: "Paris", hy: "Փարիզ", ru: "Париж" }],
-      ["🇮🇹", { en: "Italy", hy: "Իտալիա", ru: "Италия" }, { en: "Rome", hy: "Հռոմ", ru: "Рим" }],
-      ["🇯🇵", { en: "Japan", hy: "Ճապոնիա", ru: "Япония" }, { en: "Tokyo", hy: "Տոկիո", ru: "Токио" }],
-      ["🇬🇧", { en: "United Kingdom", the: true, hy: "Մեծ Բրիտանիա", ru: "Великобритания" }, { en: "London", hy: "Լոնդոն", ru: "Лондон" }],
-      ["🇪🇸", { en: "Spain", hy: "Իսպանիա", ru: "Испания" }, { en: "Madrid", hy: "Մադրիդ", ru: "Мадрид" }],
-      ["🇩🇪", { en: "Germany", hy: "Գերմանիա", ru: "Германия" }, { en: "Berlin", hy: "Բեռլին", ru: "Берлин" }],
-      ["🇪🇬", { en: "Egypt", hy: "Եգիպտոս", ru: "Египет" }, { en: "Cairo", hy: "Կահիրե", ru: "Каир" }],
-      ["🇬🇷", { en: "Greece", hy: "Հունաստան", ru: "Греция" }, { en: "Athens", hy: "Աթենք", ru: "Афины" }],
-      ["🇬🇪", { en: "Georgia", hy: "Վրաստան", ru: "Грузия" }, { en: "Tbilisi", hy: "Թբիլիսի", ru: "Тбилиси" }],
-      ["🇨🇦", { en: "Canada", hy: "Կանադա", ru: "Канада" }, { en: "Ottawa", hy: "Օտտավա", ru: "Оттава" }],
-      ["🇦🇺", { en: "Australia", hy: "Ավստրալիա", ru: "Австралия" }, { en: "Canberra", hy: "Կանբերա", ru: "Канберра" }],
-      ["🇨🇳", { en: "China", hy: "Չինաստան", ru: "Китай" }, { en: "Beijing", hy: "Պեկին", ru: "Пекин" }],
-      ["🇮🇳", { en: "India", hy: "Հնդկաստան", ru: "Индия" }, { en: "New Delhi", hy: "Նյու Դելի", ru: "Нью-Дели" }],
-      ["🇧🇷", { en: "Brazil", hy: "Բրազիլիա", ru: "Бразилия" }, { en: "Brasília", hy: "Բրազիլիա", ru: "Бразилиа" }],
-      ["🇦🇷", { en: "Argentina", hy: "Արգենտինա", ru: "Аргентина" }, { en: "Buenos Aires", hy: "Բուենոս Այրես", ru: "Буэнос-Айрес" }],
-      ["🇲🇽", { en: "Mexico", hy: "Մեքսիկա", ru: "Мексика" }, { en: "Mexico City", hy: "Մեխիկո", ru: "Мехико" }],
-      ["🇺🇸", { en: "United States", the: true, hy: "ԱՄՆ", ru: "США" }, { en: "Washington, D.C.", hy: "Վաշինգտոն", ru: "Вашингтон" }],
-      ["🇳🇱", { en: "Netherlands", the: true, hy: "Նիդեռլանդներ", ru: "Нидерланды" }, { en: "Amsterdam", hy: "Ամստերդամ", ru: "Амстердам" }],
-      ["🇸🇪", { en: "Sweden", hy: "Շվեդիա", ru: "Швеция" }, { en: "Stockholm", hy: "Ստոկհոլմ", ru: "Стокгольм" }],
-      ["🇳🇴", { en: "Norway", hy: "Նորվեգիա", ru: "Норвегия" }, { en: "Oslo", hy: "Օսլո", ru: "Осло" }],
-      ["🇰🇪", { en: "Kenya", hy: "Քենիա", ru: "Кения" }, { en: "Nairobi", hy: "Նայրոբի", ru: "Найроби" }],
-      ["🇰🇷", { en: "South Korea", hy: "Հարավային Կորեա", ru: "Южная Корея" }, { en: "Seoul", hy: "Սեուլ", ru: "Сеул" }],
-      ["🇵🇹", { en: "Portugal", hy: "Պորտուգալիա", ru: "Португалия" }, { en: "Lisbon", hy: "Լիսաբոն", ru: "Лиссабон" }]
-    ];
+    // Countries and levels live in ../shared/countries.js. Countries whose capital
+    // has the same name (Singapore, Kuwait…) are skipped here.
+    function withCapital(list) { return list.filter(function (c) { return c.capital; }); }
 
     GameKit.start({
       id: "capital-cities",
       rounds: 10,
-      makeQuestion: function (lang) {
-        var cities = COUNTRIES.map(function (c) { return GameKit.tr(c[2]); });
-        var c = GameKit.pick(COUNTRIES);
-        var country = GameKit.tr(c[1]);
-        var city = GameKit.tr(c[2]);
-        var enName = (c[1].the ? "the " : "") + c[1].en;
+      levels: true,
+      makeQuestion: function (lang, level) {
+        var c = GameKit.pick(withCapital(CountryKit.forLevel(level)));
+        var cityOf = function (x) { return x.capital ? GameKit.tr(x.capital) : null; };
+        var wrong = CountryKit.distractors(c, withCapital(CountryKit.upToLevel(level)), CountryKit.choiceCount(level) - 1, level, cityOf);
+        var country = GameKit.tr(c.name);
+        var city = cityOf(c);
+        var enName = (c.name.the ? "the " : "") + c.name.en;
         return {
-          key: c[1].en,
+          key: c.name.en,
           prompt: GameKit.tr({
             en: "What is the capital of " + enName + "?",
             hy: "Ո՞րն է այս երկրի մայրաքաղաքը",
             ru: "Какая столица у этой страны?"
           }),
-          visual: '<div><div class="v-emoji">' + c[0] + '</div><div class="v-caption">' + country + "</div></div>",
-          choices: GameKit.withDistractors(city, cities, 4),
+          visual: '<div><div class="v-emoji">' + c.flag + '</div><div class="v-caption">' + country + "</div></div>",
+          choices: GameKit.shuffle([city].concat(wrong.map(cityOf))),
           answer: city,
           explain: GameKit.tr({
             en: city + " is the capital of " + enName + ".",

@@ -90,7 +90,7 @@ body {
   cursor: pointer;
 }
 .g-gear:hover, .g-gear[aria-expanded="true"] { border-color: var(--c); }
-.g-gear__timer { font-size: 14px; }
+.g-gear__timer, .g-gear__level { font-size: 14px; }
 
 /* Settings popover */
 .g-panel {
@@ -293,6 +293,7 @@ body {
 
 .g-choices--big .g-choice { min-height: 84px; font-size: 40px; font-weight: 800; }
 .g-choices--two .g-choice { min-height: 80px; font-size: 24px; }
+.g-choices--three { grid-template-columns: 1fr; }
 
 .g-choice.is-right { background: var(--right); border-color: #178C57; color: #fff; animation: g-bounce .45s ease; }
 .g-choice.is-wrong { background: #FFF0F2; border-color: var(--wrong); color: var(--wrong); animation: g-shake .4s ease; cursor: default; }
@@ -359,6 +360,7 @@ body {
   .g-right { gap: 6px; }
   .g-gear { padding: 6px 10px; font-size: 14px; }
   .g-gear__lang, .g-gear__timer { display: none; }
+  .g-gear__lvname { display: none; }
   .g-panel { right: 14px; }
   .g-progress { margin: 0 14px; }
   .g-stage { padding: 16px 12px 28px; }

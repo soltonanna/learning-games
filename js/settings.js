@@ -3,6 +3,8 @@
  *   - language    "en" (default) | "hy" | "ru"
  *   - timer       thinking time per question in seconds, 0 = off (default)
  *   - age         dashboard age filter, "7+" by default
+ *   - level       difficulty for games that have levels: "easy" (default) | "medium" | "hard",
+ *                 remembered separately for each game (getLevel / setLevel)
  *
  * Choices are remembered in the browser (localStorage), so the language and
  * timer picked on the dashboard are used by every game, and vice versa.
@@ -18,6 +20,12 @@
   ];
 
   var TIMERS = [0, 10, 20, 30];
+
+  var LEVELS = [
+    { id: "easy",   icon: "🟢", name: { en: "Easy",   hy: "Հեշտ",  ru: "Легко" } },
+    { id: "medium", icon: "🟡", name: { en: "Medium", hy: "Միջին", ru: "Средне" } },
+    { id: "hard",   icon: "🔴", name: { en: "Hard",   hy: "Դժվար", ru: "Сложно" } }
+  ];
 
   /** Dashboard age groups. A game shows in a group if its age range overlaps it. */
   var AGE_GROUPS = [
@@ -58,6 +66,13 @@
     if (key === "timer") value = Number(value);
     if (VALID[key] && VALID[key](value)) write(key, value);
   }
+
+  function isLevel(v) { return LEVELS.some(function (l) { return l.id === v; }); }
+  function getLevel(gameId) {
+    var v = read("level-" + gameId);
+    return isLevel(v) ? v : LEVELS[0].id;
+  }
+  function setLevel(gameId, value) { if (isLevel(value)) write("level-" + gameId, value); }
 
   // ?lang=xx in the URL wins and is remembered.
   try {
@@ -109,6 +124,9 @@
   window.PlaySettings = {
     LANGS: LANGS,
     TIMERS: TIMERS,
+    LEVELS: LEVELS,
+    getLevel: getLevel,
+    setLevel: setLevel,
     AGE_GROUPS: AGE_GROUPS,
     DEFAULT_AGES: DEFAULT_AGES,
     get: get,

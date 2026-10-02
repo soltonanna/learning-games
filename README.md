@@ -15,6 +15,7 @@ js/games-data.js        ← THE GAME CATALOG (themes + games). Edit this to add 
 js/dashboard.js         Renders language switch, theme/age filters, timer setting and cards
 games/shared/engine.js  GameKit: shared multiple-choice engine (rounds, score, stars, read-aloud)
 games/shared/game.css   Shared game styles
+games/shared/countries.js  118 countries (flags, names, capitals in 3 languages) split into Easy / Medium / Hard
 games/<game-id>/        One folder per game
 ```
 
@@ -26,6 +27,16 @@ games/<game-id>/        One folder per game
   `ages` range overlaps the group. A game without `ages` counts as 7+.
 - **Thinking time:** Off / 10 / 20 / 30 seconds per question. When time runs out the right
   answer is shown and the game moves on (no star for that question).
+
+## Levels (Easy / Medium / Hard)
+
+Add `levels: true` to `GameKit.start(...)` and the game gets a 🎯 Level switch in ⚙️
+(remembered separately for each game). `makeQuestion(lang, level)` then receives
+`"easy" | "medium" | "hard"`. After a 3-star game the end screen offers the next level.
+
+Geography games use `games/shared/countries.js`: Easy = 30 famous countries (3 answers),
+Medium = 41 more (4 answers), Hard = 47 more (4 answers, look-alike choices from the same region).
+To add a country, add one row there — both Flag Detective and Capital Cities pick it up.
 
 ## Add a new game
 

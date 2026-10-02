@@ -73,9 +73,9 @@ window.LEARNING_GAMES = {
       url: "games/flag-detective/index.html",
       title: { en: "Flag Detective", hy: "Դրոշների խուզարկու", ru: "Детектив флагов" },
       description: {
-        en: "Look at the flag and find which country it belongs to.",
-        hy: "Նայի՛ր դրոշին և գտի՛ր, թե որ երկրինն է։",
-        ru: "Посмотри на флаг и найди, какой стране он принадлежит."
+        en: "Look at the flag and find which country it belongs to. 118 countries, 3 levels.",
+        hy: "Նայի՛ր դրոշին և գտի՛ր, թե որ երկրինն է։ 118 երկիր, 3 մակարդակ։",
+        ru: "Посмотри на флаг и найди, какой стране он принадлежит. 118 стран, 3 уровня."
       }
     },
     {
@@ -86,9 +86,9 @@ window.LEARNING_GAMES = {
       url: "games/capital-cities/index.html",
       title: { en: "Capital Cities", hy: "Մայրաքաղաքներ", ru: "Столицы" },
       description: {
-        en: "Every country has a capital city. Can you name them?",
-        hy: "Ամեն երկիր ունի մայրաքաղաք։ Կարո՞ղ ես անվանել դրանք։",
-        ru: "У каждой страны есть столица. Сможешь их назвать?"
+        en: "Every country has a capital city. Can you name them? 109 capitals, 3 levels.",
+        hy: "Ամեն երկիր ունի մայրաքաղաք։ Կարո՞ղ ես անվանել դրանք։ 109 մայրաքաղաք, 3 մակարդակ։",
+        ru: "У каждой страны есть столица. Сможешь их назвать? 109 столиц, 3 уровня."
       }
     },
     {

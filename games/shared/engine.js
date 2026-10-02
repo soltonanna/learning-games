@@ -10,7 +10,8 @@
  *   GameKit.start({
  *     id: "count-fruits",              // must match an id in js/games-data.js
  *     rounds: 10,                      // optional, default 10
- *     makeQuestion: function (lang) {  // called once per round; lang = "en" | "hy" | "ru"
+ *     levels: true,                    // optional — adds Easy / Medium / Hard
+ *     makeQuestion: function (lang, level) {  // lang = "en" | "hy" | "ru"; level = "easy" | "medium" | "hard"
  *       return {
  *         key:     "unique-id",         // optional — avoids repeating questions
  *         prompt:  "How many apples?",
@@ -89,6 +90,8 @@
     settings: { en: "Settings", hy: "Կարգավորումներ", ru: "Настройки" },
     language: { en: "Language", hy: "Լեզու", ru: "Язык" },
     timer: { en: "Thinking time", hy: "Մտածելու ժամանակ", ru: "Время на ответ" },
+    level: { en: "Level", hy: "Մակարդակ", ru: "Уровень" },
+    nextLevel: { en: "Try {l} level", hy: "Փորձի՛ր «{l}» մակարդակը", ru: "Попробуй уровень «{l}»" },
     off: { en: "Off", hy: "Անջատ", ru: "Выкл" },
     sec: { en: "s", hy: "վ", ru: "с" },
     restartNote: {
@@ -160,7 +163,7 @@
     document.documentElement.style.setProperty("--c", theme.color);
     document.documentElement.style.setProperty("--soft", theme.soft);
 
-    var lang, timerSec, state, card, scoreEl, bar, progress, panel, gear;
+    var lang, timerSec, level, state, card, scoreEl, bar, progress, panel, gear;
     var timer = { id: null, end: 0 };
     var nextTimeout = null;
 
@@ -195,6 +198,8 @@
       stopAll();
       lang = S.get("lang");
       timerSec = S.get("timer");
+      level = opts.levels ? S.getLevel(opts.id) : null;
+      var levelInfo = level && S.LEVELS.filter(function (l) { return l.id === level; })[0];
 
       var title = S.tr(game.title);
       document.documentElement.lang = lang;
@@ -209,6 +214,7 @@
             '<button class="g-gear" type="button" id="g-gear" aria-expanded="false" aria-controls="g-panel" title="' + escapeHTML(t("settings")) + '">' +
               '<span aria-hidden="true">⚙️</span><span class="g-gear__lang">' + escapeHTML(S.langInfo(lang).label) + "</span>" +
               (timerSec ? '<span class="g-gear__timer">⏱️' + timerSec + "</span>" : "") +
+              (levelInfo ? '<span class="g-gear__level">' + levelInfo.icon + '<span class="g-gear__lvname"> ' + escapeHTML(S.tr(levelInfo.name)) + "</span></span>" : "") +
             "</button>" +
             '<div class="g-score" aria-label="' + escapeHTML(t("score")) + '"><span aria-hidden="true">⭐</span> <b id="g-score">0</b></div>' +
           "</div>" +
@@ -221,6 +227,13 @@
                 return { value: s, label: s ? s + "&nbsp;" + escapeHTML(t("sec")) : escapeHTML(t("off")) };
               }), timerSec) +
             "</div>" +
+            (levelInfo
+              ? '<div class="g-panel__row"><span class="g-panel__label">🎯 ' + escapeHTML(t("level")) + "</span>" +
+                  seg("level", S.LEVELS.map(function (l) {
+                    return { value: l.id, label: l.icon + "&nbsp;" + escapeHTML(S.tr(l.name)) };
+                  }), level) +
+                "</div>"
+              : "") +
             '<p class="g-panel__note">' + escapeHTML(t("restartNote")) + "</p>" +
           "</div>" +
         "</header>" +
@@ -242,10 +255,11 @@
 
       panel.addEventListener("click", function (e) {
         e.stopPropagation();
-        var btn = e.target.closest("[data-lang],[data-timer]");
+        var btn = e.target.closest("[data-lang],[data-timer],[data-level]");
         if (!btn) return;
         if (btn.hasAttribute("data-lang")) S.set("lang", btn.getAttribute("data-lang"));
         if (btn.hasAttribute("data-timer")) S.set("timer", btn.getAttribute("data-timer"));
+        if (btn.hasAttribute("data-level")) S.setLevel(opts.id, btn.getAttribute("data-level"));
         build();
       });
 
@@ -277,7 +291,7 @@
 
     function newQuestion() {
       var q, tries = 0;
-      do { q = opts.makeQuestion(lang); tries++; }
+      do { q = opts.makeQuestion(lang, level); tries++; }
       while (q.key != null && state.seen[q.key] && tries < 30);
       if (q.key != null) state.seen[q.key] = true;
       return q;
@@ -336,7 +350,8 @@
           : "") +
         '<div class="g-visual">' + (q.visual || "") + "</div>" +
         '<div class="g-choices' + (q.size === "big" ? " g-choices--big" : "") +
-          (q.choices.length === 2 ? " g-choices--two" : "") + '"></div>' +
+          (q.choices.length === 2 ? " g-choices--two" : "") +
+          (q.choices.length === 3 ? " g-choices--three" : "") + '"></div>' +
         '<p class="g-feedback" aria-live="polite">&nbsp;</p>';
 
       var say = card.querySelector(".g-say");
@@ -399,6 +414,8 @@
       var ratio = state.score / rounds;
       var stars = ratio >= 0.9 ? 3 : ratio >= 0.6 ? 2 : 1;
       var msg = t("end" + stars);
+      var idx = level ? S.LEVELS.map(function (l) { return l.id; }).indexOf(level) : -1;
+      var next = stars === 3 && idx > -1 ? S.LEVELS[idx + 1] : null;
 
       card.innerHTML =
         '<div class="g-end">' +
@@ -410,12 +427,18 @@
           '<h1 class="g-end__title">' + escapeHTML(msg) + "</h1>" +
           '<p class="g-end__score">' + t("endScore").replace("{n}", state.score).replace("{r}", rounds) + "</p>" +
           '<div class="g-end__actions">' +
-            '<button class="g-btn g-btn--primary" type="button" id="g-again">' + escapeHTML(t("again")) + "</button>" +
+            (next ? '<button class="g-btn g-btn--primary" type="button" id="g-next">' + next.icon + " " +
+              escapeHTML(t("nextLevel").replace("{l}", S.tr(next.name))) + "</button>" : "") +
+            '<button class="g-btn' + (next ? "" : " g-btn--primary") + '" type="button" id="g-again">' + escapeHTML(t("again")) + "</button>" +
             '<a class="g-btn" href="' + home + '">' + escapeHTML(t("more")) + "</a>" +
           "</div>" +
         "</div>";
 
       document.getElementById("g-again").addEventListener("click", reset);
+      if (next) document.getElementById("g-next").addEventListener("click", function () {
+        S.setLevel(opts.id, next.id);
+        build();
+      });
     }
 
     // Voices load a moment after the page; show 🔊 once a voice for the language appears.

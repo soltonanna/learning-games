@@ -15,54 +15,27 @@
   <script src="../../js/settings.js"></script>
   <script src="../../js/games-data.js"></script>
   <script src="../shared/engine.js"></script>
+  <script src="../shared/countries.js"></script>
   <script>
-    var FLAGS = [
-      ["🇦🇲", { en: "Armenia", hy: "Հայաստան", ru: "Армения" }],
-      ["🇫🇷", { en: "France", hy: "Ֆրանսիա", ru: "Франция" }],
-      ["🇯🇵", { en: "Japan", hy: "Ճապոնիա", ru: "Япония" }],
-      ["🇧🇷", { en: "Brazil", hy: "Բրազիլիա", ru: "Бразилия" }],
-      ["🇨🇦", { en: "Canada", hy: "Կանադա", ru: "Канада" }],
-      ["🇮🇹", { en: "Italy", hy: "Իտալիա", ru: "Италия" }],
-      ["🇩🇪", { en: "Germany", hy: "Գերմանիա", ru: "Германия" }],
-      ["🇺🇸", { en: "United States", hy: "ԱՄՆ", ru: "США" }],
-      ["🇬🇧", { en: "United Kingdom", hy: "Մեծ Բրիտանիա", ru: "Великобритания" }],
-      ["🇪🇸", { en: "Spain", hy: "Իսպանիա", ru: "Испания" }],
-      ["🇨🇳", { en: "China", hy: "Չինաստան", ru: "Китай" }],
-      ["🇮🇳", { en: "India", hy: "Հնդկաստան", ru: "Индия" }],
-      ["🇦🇺", { en: "Australia", hy: "Ավստրալիա", ru: "Австралия" }],
-      ["🇲🇽", { en: "Mexico", hy: "Մեքսիկա", ru: "Мексика" }],
-      ["🇬🇪", { en: "Georgia", hy: "Վրաստան", ru: "Грузия" }],
-      ["🇬🇷", { en: "Greece", hy: "Հունաստան", ru: "Греция" }],
-      ["🇰🇷", { en: "South Korea", hy: "Հարավային Կորեա", ru: "Южная Корея" }],
-      ["🇸🇪", { en: "Sweden", hy: "Շվեդիա", ru: "Швеция" }],
-      ["🇪🇬", { en: "Egypt", hy: "Եգիպտոս", ru: "Египет" }],
-      ["🇦🇷", { en: "Argentina", hy: "Արգենտինա", ru: "Аргентина" }],
-      ["🇨🇭", { en: "Switzerland", hy: "Շվեյցարիա", ru: "Швейцария" }],
-      ["🇳🇱", { en: "Netherlands", hy: "Նիդեռլանդներ", ru: "Нидерланды" }],
-      ["🇵🇹", { en: "Portugal", hy: "Պորտուգալիա", ru: "Португалия" }],
-      ["🇳🇴", { en: "Norway", hy: "Նորվեգիա", ru: "Норвегия" }],
-      ["🇰🇪", { en: "Kenya", hy: "Քենիա", ru: "Кения" }],
-      ["🇫🇮", { en: "Finland", hy: "Ֆինլանդիա", ru: "Финляндия" }],
-      ["🇿🇦", { en: "South Africa", hy: "Հարավային Աֆրիկա", ru: "Южная Африка" }],
-      ["🇺🇦", { en: "Ukraine", hy: "Ուկրաինա", ru: "Украина" }]
-    ];
-
+    // Countries and levels live in ../shared/countries.js (Easy 30 · Medium 41 · Hard 47).
     GameKit.start({
       id: "flag-detective",
       rounds: 10,
-      makeQuestion: function (lang) {
-        var names = FLAGS.map(function (f) { return GameKit.tr(f[1]); });
-        var f = GameKit.pick(FLAGS);
-        var name = GameKit.tr(f[1]);
+      levels: true,
+      makeQuestion: function (lang, level) {
+        var c = GameKit.pick(CountryKit.forLevel(level));
+        var nameOf = function (x) { return GameKit.tr(x.name); };
+        var wrong = CountryKit.distractors(c, CountryKit.upToLevel(level), CountryKit.choiceCount(level) - 1, level, nameOf);
+        var name = nameOf(c);
         return {
-          key: f[1].en,
+          key: c.name.en,
           prompt: GameKit.tr({
             en: "Which country has this flag?",
             hy: "Ո՞ր երկրի դրոշն է սա",
             ru: "Какой стране принадлежит этот флаг?"
           }),
-          visual: '<div class="v-emoji">' + f[0] + "</div>",
-          choices: GameKit.withDistractors(name, names, 4),
+          visual: '<div class="v-emoji">' + c.flag + "</div>",
+          choices: GameKit.shuffle([name].concat(wrong.map(nameOf))),
           answer: name
         };
       }
