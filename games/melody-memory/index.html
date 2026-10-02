@@ -1,0 +1,1008 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Melody Memory · Play &amp; Learn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700;800&family=Noto+Sans+Armenian:wght@500;600;700;800&display=swap">
+  <link rel="stylesheet" href="../shared/game.css">
+  <style>
+    /* ---------- Stats row ---------- */
+    .mm-stats {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .mm-stat {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: var(--soft);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 17px;
+      line-height: 1.2;
+    }
+    .mm-stat b { font-weight: 800; font-variant-numeric: tabular-nums; }
+    .mm-hearts { letter-spacing: 2px; }
+
+    /* ---------- Prompt ---------- */
+    .mm-prompt {
+      margin: 14px 0 2px;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 30px;
+      line-height: 1.2;
+      text-align: center;
+    }
+    .mm-sub {
+      min-height: 1.4em;
+      margin: 0;
+      color: var(--ink-soft);
+      font-weight: 600;
+      font-size: 16px;
+      text-align: center;
+    }
+
+    /* ---------- Melody row: one bubble per note ---------- */
+    .mm-melody {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      min-height: 64px;
+      margin: 14px 0 0;
+      padding: 10px 12px;
+      border-radius: 22px;
+      background: var(--soft);
+    }
+    .mm-dot {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #fff;
+      border: 3px dashed color-mix(in srgb, var(--c) 35%, #fff);
+      color: color-mix(in srgb, var(--c) 45%, #fff);
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 13px;
+      line-height: 1;
+      transition: background .15s ease, opacity .15s ease;
+    }
+    .mm-dot.is-on, .mm-dot.is-ghost, .mm-dot.is-ok, .mm-dot.is-bad {
+      border: 0;
+      border-bottom: 4px solid color-mix(in srgb, var(--pc) 70%, #000);
+      background: var(--pc);
+      color: #fff;
+      text-shadow: 0 1px 0 rgba(0, 0, 0, .2);
+    }
+    .mm-dot.is-on { animation: mm-pop .3s ease; }
+    .mm-dot.is-ghost { opacity: .3; }
+    .mm-dot.is-ok { animation: mm-pop .3s ease; box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--right); }
+    .mm-dot.is-bad { animation: g-shake .4s ease; box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--wrong); }
+
+    /* ---------- Xylophone ---------- */
+    .mm-xylo {
+      position: relative;
+      max-width: calc(var(--n) * 76px);
+      margin: 22px auto 0;
+      padding: 0 6px;
+      touch-action: manipulation;
+    }
+    /* the two wooden rails the bars lie on */
+    .mm-xylo::before, .mm-xylo::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 12px;
+      border-radius: 6px;
+      background: #B9814F;
+      box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .15);
+    }
+    .mm-xylo::before { top: 24px; transform: rotate(-1.6deg); transform-origin: left; }
+    .mm-xylo::after  { bottom: 24px; transform: rotate(1.6deg); transform-origin: left; }
+    .mm-xylo.is-listening { pointer-events: none; }
+    .mm-bars {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(var(--n), 1fr);
+      align-items: center;
+      gap: clamp(5px, 1.6vw, 12px);
+      height: clamp(190px, 44vw, 250px);
+    }
+    .mm-bar {
+      position: relative;
+      height: var(--h);
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      border: 0;
+      border-bottom: 7px solid color-mix(in srgb, var(--pc) 68%, #000);
+      border-radius: 14px;
+      background: var(--pc);
+      color: #fff;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform .08s ease, filter .08s ease, border-bottom-width .08s ease, box-shadow .15s ease;
+    }
+    /* the little pins that hold each bar on the rails */
+    .mm-bar::before, .mm-bar::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      width: 9px;
+      height: 9px;
+      margin-left: -4.5px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .75);
+      box-shadow: 0 1px 0 rgba(0, 0, 0, .2);
+    }
+    .mm-bar::before { top: 10px; }
+    .mm-bar::after  { bottom: 10px; }
+    .mm-bar__name {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: clamp(12px, 3.2vw, 18px);
+      line-height: 1;
+      text-shadow: 0 1px 0 rgba(0, 0, 0, .2);
+    }
+    .mm-bar__key {
+      margin-top: 4px;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 12px;
+      opacity: .75;
+      display: none;
+    }
+    @media (hover: hover) and (pointer: fine) { .mm-bar__key { display: block; } }
+    .mm-bar:focus-visible { outline: 4px solid var(--ink); outline-offset: 3px; }
+    .mm-bar.is-hit, .mm-bar.is-lit {
+      transform: translateY(5px) scale(.97);
+      border-bottom-width: 2px;
+      filter: brightness(1.18);
+      box-shadow: 0 0 0 7px color-mix(in srgb, var(--pc) 32%, transparent);
+    }
+    .mm-bar.is-wrong { animation: g-shake .4s ease; filter: saturate(.4) brightness(.9); }
+    .mm-bar.is-hint { animation: mm-hint .5s ease 2; box-shadow: 0 0 0 5px #fff, 0 0 0 9px var(--right); }
+    .mm-note {
+      position: absolute;
+      left: 50%;
+      top: 4px;
+      z-index: 2;
+      margin-left: -10px;
+      color: var(--pc);
+      font-size: 24px;
+      font-weight: 800;
+      pointer-events: none;
+      animation: mm-float .7s ease-out forwards;
+    }
+    .mm-xylo.is-happy .mm-bar { animation: mm-jump .5s ease; animation-delay: calc(var(--i) * .05s); }
+
+    /* ---------- Buttons under the xylophone ---------- */
+    .mm-actions {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      min-height: 56px;
+      margin-top: 6px;
+    }
+
+    /* ---------- Start screen + song picker ---------- */
+    .mm-intro { padding: 10px 0 6px; text-align: center; }
+    .mm-intro__icon { font-size: 72px; line-height: 1; }
+    .mm-intro__title { margin: 12px 0 6px; font-family: var(--font-display); font-weight: 800; font-size: 32px; }
+    .mm-intro__rules { max-width: 470px; margin: 0 auto 20px; color: var(--ink-soft); font-weight: 600; font-size: 17px; }
+    .mm-choices {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 14px;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+    .mm-choice {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 18px 14px 16px;
+      border: 2px solid var(--line);
+      border-bottom-width: 6px;
+      border-radius: 24px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      text-align: center;
+      transition: transform .1s ease, border-color .15s ease;
+    }
+    .mm-choice:hover { transform: translateY(-2px); border-color: var(--c); }
+    .mm-choice:focus-visible { outline: 4px solid var(--ink); outline-offset: 3px; }
+    .mm-choice__icon { font-size: 44px; line-height: 1.1; }
+    .mm-choice__name { font-family: var(--font-display); font-weight: 800; font-size: 20px; line-height: 1.15; }
+    .mm-choice__desc { color: var(--ink-soft); font-weight: 600; font-size: 14px; line-height: 1.3; }
+    .mm-choice__done { color: #E8A100; font-size: 15px; letter-spacing: 1px; min-height: 1.2em; }
+    .mm-back {
+      margin-top: 18px;
+    }
+
+    .mm-lv { line-height: 1.1; }
+    .mm-lv small { display: block; font-size: 12px; font-weight: 600; opacity: .8; line-height: 1; }
+
+    @keyframes mm-pop { 0% { transform: scale(.6); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
+    @keyframes mm-jump { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-14px); } }
+    @keyframes mm-hint { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+    @keyframes mm-float { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-46px); } }
+
+    @media (max-width: 560px) {
+      .mm-prompt { font-size: 24px; }
+      .mm-sub { font-size: 14px; }
+      .mm-stat { font-size: 15px; padding: 5px 11px; }
+      .mm-stat__label { display: none; }
+      .mm-dot { width: 32px; height: 32px; font-size: 11px; }
+      .mm-melody { gap: 6px; padding: 8px; }
+      .mm-bar { border-radius: 10px; }
+      .mm-bar::before, .mm-bar::after { width: 7px; height: 7px; margin-left: -3.5px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .mm-dot, .mm-xylo.is-happy .mm-bar, .mm-bar.is-hint, .mm-note { animation: none !important; }
+      .mm-note { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+
+  <script src="../../js/settings.js"></script>
+  <script src="../../js/games-data.js"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    var S = window.PlaySettings;
+    var GAME_ID = "melody-memory";
+
+    /**
+     * NOTES — the xylophone bars, low to high (one octave, C major).
+     * Every note always has the same colour, so children can remember notes by colour too.
+     * Sounds are made in the browser (no audio files).
+     */
+    var NOTES = [
+      { id: "do",  f: 523.25,  color: "#F0506E", name: { en: "Do",  hy: "Դո",  ru: "До" } },
+      { id: "re",  f: 587.33,  color: "#FF7A30", name: { en: "Re",  hy: "Ռե",  ru: "Ре" } },
+      { id: "mi",  f: 659.25,  color: "#EDAA00", name: { en: "Mi",  hy: "Մի",  ru: "Ми" } },
+      { id: "fa",  f: 698.46,  color: "#22B573", name: { en: "Fa",  hy: "Ֆա",  ru: "Фа" } },
+      { id: "sol", f: 783.99,  color: "#12A5C4", name: { en: "Sol", hy: "Սոլ", ru: "Соль" } },
+      { id: "la",  f: 880.00,  color: "#3D7BFF", name: { en: "La",  hy: "Լյա", ru: "Ля" } },
+      { id: "si",  f: 987.77,  color: "#7C5CFF", name: { en: "Si",  hy: "Սի",  ru: "Си" } },
+      { id: "do2", f: 1046.50, color: "#EC4C8A", name: { en: "Do",  hy: "Դո",  ru: "До" } }
+    ];
+
+    /**
+     * Difficulty (⚙️):
+     *   keys   which bars are on the xylophone in "Growing melody"
+     *   start  how many notes the first melody has
+     *   goal   how many notes the last melody has (one more note every round)
+     *   beat   milliseconds per note when the game plays (smaller = faster)
+     *   ghost  after listening, keep the coloured bubbles faintly visible (a hint for little ones)
+     *   skip   in "Songs", how many of the first song parts to skip
+     */
+    var LEVEL_SETUP = {
+      easy:   { keys: [0, 2, 4, 7],          start: 2, goal: 7,  beat: 600, ghost: true,  skip: 0 },
+      medium: { keys: [0, 1, 2, 3, 4, 5],    start: 3, goal: 9,  beat: 500, ghost: false, skip: 0 },
+      hard:   { keys: [0, 1, 2, 3, 4, 5, 6, 7], start: 3, goal: 11, beat: 420, ghost: false, skip: 1 }
+    };
+
+    /**
+     * SONGS — old folk / classical tunes (public domain).
+     *   notes  [noteIndex, beats] — beats only make the tune sound right; the child just has to hit the right bars
+     *   parts  how many notes the child repeats in each round (the tune grows part by part)
+     */
+    var SONGS = [
+      { id: "twinkle", icon: "⭐",
+        title: { en: "Twinkle, Twinkle, Little Star", hy: "Շողա, շողա, փոքրիկ աստղ", ru: "Мерцай, мерцай, звёздочка" },
+        notes: [[0,1],[0,1],[4,1],[4,1],[5,1],[5,1],[4,2],[3,1],[3,1],[2,1],[2,1],[1,1],[1,1],[0,2]],
+        parts: [4, 7, 11, 14] },
+      { id: "lamb", icon: "🐑",
+        title: { en: "Mary Had a Little Lamb", hy: "Մերին ուներ մի գառնուկ", ru: "У Мэри был барашек" },
+        notes: [[2,1],[1,1],[0,1],[1,1],[2,1],[2,1],[2,2],[1,1],[1,1],[1,2],[2,1],[4,1],[4,2]],
+        parts: [4, 7, 10, 13] },
+      { id: "jacques", icon: "🔔",
+        title: { en: "Frère Jacques", hy: "Եղբայր Ժակ", ru: "Братец Яков" },
+        notes: [[0,1],[1,1],[2,1],[0,1],[0,1],[1,1],[2,1],[0,1],[2,1],[3,1],[4,2],[2,1],[3,1],[4,2]],
+        parts: [4, 8, 11, 14] },
+      { id: "joy", icon: "🎻",
+        title: { en: "Ode to Joy", hy: "Ներբող ուրախությանը", ru: "Ода к радости" },
+        notes: [[2,1],[2,1],[3,1],[4,1],[4,1],[3,1],[2,1],[1,1],[0,1],[0,1],[1,1],[2,1],[2,1.5],[1,0.5],[1,2]],
+        parts: [4, 8, 12, 15] }
+    ];
+
+    var HEARTS = 3;
+
+    var UI = {
+      allGames: { en: "All games", hy: "Բոլոր խաղերը", ru: "Все игры" },
+      settings: { en: "Settings", hy: "Կարգավորումներ", ru: "Настройки" },
+      language: { en: "Language", hy: "Լեզու", ru: "Язык" },
+      level:    { en: "Difficulty", hy: "Բարդություն", ru: "Сложность" },
+      lvEasy:   { en: "4 bars, slow", hy: "4 ձող, դանդաղ", ru: "4 ноты, медленно" },
+      lvMedium: { en: "6 bars", hy: "6 ձող", ru: "6 нот" },
+      lvHard:   { en: "8 bars, fast", hy: "8 ձող, արագ", ru: "8 нот, быстро" },
+      restartNote: {
+        en: "Changing the difficulty starts a new game.",
+        hy: "Բարդությունը փոխելիս նոր խաղ կսկսվի։",
+        ru: "После изменения сложности начнётся новая игра."
+      },
+      introTitle: { en: "Melody Memory!", hy: "Հիշի՛ր մեղեդին։", ru: "Запомни мелодию!" },
+      introRules: {
+        en: "The xylophone plays some notes. Remember them and play them back in the same order!",
+        hy: "Քսիլոֆոնը մի քանի նոտա կնվագի։ Հիշի՛ր դրանք և նվագի՛ր նույն հերթականությամբ։",
+        ru: "Ксилофон сыграет несколько нот. Запомни их и сыграй в том же порядке!"
+      },
+      modeGrow:     { en: "Growing melody", hy: "Աճող մեղեդի", ru: "Растущая мелодия" },
+      modeGrowDesc: {
+        en: "One more note every round. How long can you go?",
+        hy: "Ամեն փուլում՝ մեկ նոտա ավելի։ Որքա՞ն կհիշես։",
+        ru: "Каждый раунд — на одну ноту больше. Сколько запомнишь?"
+      },
+      modeSongs:     { en: "Songs", hy: "Երգեր", ru: "Песенки" },
+      modeSongsDesc: {
+        en: "Learn to play real tunes, part by part.",
+        hy: "Սովորի՛ր նվագել իսկական մեղեդիներ՝ մաս առ մաս։",
+        ru: "Научись играть настоящие мелодии, часть за частью."
+      },
+      pickSong:  { en: "Pick a song", hy: "Ընտրի՛ր երգը", ru: "Выбери песенку" },
+      notesN:    { en: "{n} notes", hy: "{n} նոտա", ru: "{n} нот" },
+      back:      { en: "← Back", hy: "← Հետ", ru: "← Назад" },
+      soundHint: { en: "🔊 Turn the sound on!", hy: "🔊 Միացրո՛ւ ձայնը։", ru: "🔊 Включи звук!" },
+      roundN:    { en: "Round", hy: "Փուլ", ru: "Раунд" },
+      listen:    { en: "Listen… 👂", hy: "Լսի՛ր… 👂", ru: "Слушай… 👂" },
+      listenSub: { en: "Watch which bars light up.", hy: "Նայի՛ր, թե որ ձողերն են վառվում։", ru: "Смотри, какие пластинки загораются." },
+      play:      { en: "Your turn! 👆", hy: "Քո հերթն է։ 👆", ru: "Твоя очередь! 👆" },
+      playSub:   { en: "Play the same notes in the same order.", hy: "Նվագի՛ր նույն նոտաները նույն հերթականությամբ։", ru: "Сыграй те же ноты в том же порядке." },
+      newNote:   { en: "+1 note!", hy: "+1 նոտա։", ru: "+1 нота!" },
+      againBtn:  { en: "Listen again", hy: "Լսել նորից", ru: "Послушать ещё" },
+      retryBtn:  { en: "Try again", hy: "Նորից փորձել", ru: "Ещё раз" },
+      praise: {
+        en: ["Beautiful!", "Perfect!", "What a memory!", "Super!", "Well done!"],
+        hy: ["Գեղեցիկ է։", "Կատարյալ է։", "Ի՜նչ հիշողություն։", "Սուպեր։", "Ապրե՛ս։"],
+        ru: ["Красиво!", "Идеально!", "Вот это память!", "Супер!", "Молодец!"]
+      },
+      oops:      { en: "Oops!", hy: "Վա՜յ։", ru: "Ой!" },
+      wrongNote: {
+        en: "The right note was {s} — it's blinking. Listen again!",
+        hy: "Ճիշտ նոտան {s}-ն էր․ այն թարթում է։ Լսի՛ր նորից։",
+        ru: "Нужна была нота {s} — она мигает. Послушай ещё раз!"
+      },
+      end3: { en: "You're a music star!", hy: "Դու երաժշտության աստղ ես։", ru: "Ты музыкальная звезда!" },
+      end2: { en: "Great playing!", hy: "Հրաշալի նվագեցիր։", ru: "Отлично сыграно!" },
+      end1: { en: "You did it!", hy: "Դու կարողացար։", ru: "У тебя получилось!" },
+      endLose: { en: "Good try!", hy: "Լավ փորձ էր։", ru: "Хорошая попытка!" },
+      endGrowWin: {
+        en: "You remembered a melody of <b>{n}</b> notes · <b>{h}</b> of 3 hearts left",
+        hy: "Հիշեցիր <b>{n}</b> նոտայից մեղեդի · մնաց <b>{h}</b> սիրտ 3-ից",
+        ru: "Ты запомнил мелодию из <b>{n}</b> нот · осталось <b>{h}</b> из 3 сердец"
+      },
+      endGrowLose: {
+        en: "Your best melody: <b>{n}</b> notes. Practice makes perfect!",
+        hy: "Քո լավագույն մեղեդին՝ <b>{n}</b> նոտա։ Փորձի՛ր նորից։",
+        ru: "Твоя лучшая мелодия: <b>{n}</b> нот. Попробуй ещё!"
+      },
+      endSongWin: {
+        en: "You played the whole song «{s}»! · <b>{h}</b> of 3 hearts left",
+        hy: "Դու նվագեցիր ամբողջ «{s}» երգը։ · մնաց <b>{h}</b> սիրտ 3-ից",
+        ru: "Ты сыграл всю песенку «{s}»! · осталось <b>{h}</b> из 3 сердец"
+      },
+      endSongLose: {
+        en: "You learned <b>{p}</b> of {n} parts of «{s}». Try again!",
+        hy: "Սովորեցիր «{s}» երգի <b>{p}</b> մասը {n}-ից։ Փորձի՛ր նորից։",
+        ru: "Ты выучил <b>{p}</b> из {n} частей песенки «{s}». Попробуй ещё!"
+      },
+      stars:     { en: "{n} out of 3 stars", hy: "{n} աստղ 3-ից", ru: "{n} из 3 звёзд" },
+      nextLevel: { en: "Harder: {l}", hy: "Ավելի դժվար՝ {l}", ru: "Сложнее: {l}" },
+      again:     { en: "Play again", hy: "Նորից խաղալ", ru: "Играть снова" },
+      otherSong: { en: "Another song", hy: "Ուրիշ երգ", ru: "Другая песенка" },
+      otherMode: { en: "Change game", hy: "Փոխել խաղը", ru: "Сменить игру" },
+      more:      { en: "More games", hy: "Այլ խաղեր", ru: "Другие игры" },
+      noAudio: {
+        en: "Sorry, this browser can't play sounds.",
+        hy: "Ներողություն, այս դիտարկիչը չի կարող ձայն նվագել։",
+        ru: "К сожалению, этот браузер не умеет играть звуки."
+      }
+    };
+
+    function t(key) { return S.tr(UI[key]); }
+    function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
+    function esc(s) {
+      return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    /* ======================================================================
+       Sounds (Web Audio — a soft xylophone made from simple waves)
+       ====================================================================== */
+
+    var AudioCtx = window.AudioContext || window.webkitAudioContext;
+    var ctx = null, master = null;
+
+    function ensureAudio() {
+      if (!AudioCtx) return null;
+      if (!ctx) {
+        try {
+          ctx = new AudioCtx();
+          master = ctx.createGain();
+          master.gain.value = 0.7;
+          master.connect(ctx.destination);
+        } catch (e) { ctx = null; return null; }
+      }
+      if (ctx.state === "suspended") { try { ctx.resume(); } catch (e) { /* ignore */ } }
+      return ctx;
+    }
+
+    function tone(type, freq, t0, peak, decay, freqEnd) {
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(freq, t0);
+      if (freqEnd) o.frequency.exponentialRampToValueAtTime(freqEnd, t0 + decay * 0.8);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(peak, t0 + 0.006);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + decay);
+      o.connect(g); g.connect(master);
+      o.start(t0); o.stop(t0 + decay + 0.05);
+    }
+
+    function playNote(i) {
+      if (!ensureAudio()) return;
+      var f = NOTES[i].f, t0 = ctx.currentTime + 0.005;
+      tone("sine", f, t0, 0.55, 1.1);          // the note
+      tone("sine", f * 4, t0, 0.10, 0.18);     // the "tock" of the mallet
+      tone("triangle", f / 2, t0, 0.08, 0.5);  // a little warmth
+    }
+
+    function playBuzz() {
+      if (!ensureAudio()) return;
+      tone("triangle", 220, ctx.currentTime + 0.01, 0.25, 0.35, 150);
+    }
+
+    function playJingle() {
+      if (!ensureAudio()) return;
+      [0, 2, 4, 7].forEach(function (n, k) {
+        var t0 = ctx.currentTime + 0.05 + k * 0.1;
+        tone("sine", NOTES[n].f, t0, 0.3, 0.5);
+        tone("sine", NOTES[n].f * 4, t0, 0.05, 0.12);
+      });
+    }
+
+    /* ======================================================================
+       Melodies
+       ====================================================================== */
+
+    /** A random melody that sounds pleasant: mostly small steps, never the same note 3 times in a row. */
+    function makeMelody(keys, length) {
+      var out = [];
+      for (var k = 0; k < length; k++) {
+        var options = keys.filter(function (_, i) {
+          if (k >= 2 && out[k - 1] === i && out[k - 2] === i) return false;
+          return true;
+        });
+        var choice;
+        if (k === 0) {
+          choice = Math.floor(Math.random() * keys.length);
+        } else {
+          // Prefer bars close to the previous one (sounds more like a tune).
+          var prev = out[k - 1];
+          var weights = keys.map(function (_, i) {
+            if (options.indexOf(keys[i]) < 0) return 0;
+            var d = Math.abs(i - prev);
+            return d === 0 ? 1 : d === 1 ? 4 : d === 2 ? 3 : 1.5;
+          });
+          var sum = weights.reduce(function (a, b) { return a + b; }, 0), r = Math.random() * sum;
+          for (choice = 0; choice < weights.length; choice++) { r -= weights[choice]; if (r < 0) break; }
+          if (choice >= keys.length) choice = keys.length - 1;
+        }
+        out.push(choice);
+      }
+      // stored as note indexes, each one beat long
+      return out.map(function (i) { return { n: keys[i], d: 1 }; });
+    }
+
+    /* ======================================================================
+       Game
+       ====================================================================== */
+
+    var catalog = window.LEARNING_GAMES || { themes: [], games: [] };
+    var game = catalog.games.filter(function (g) { return g.id === GAME_ID; })[0] ||
+      { title: { en: "Melody Memory" }, icon: "🎶", theme: "art" };
+    var theme = catalog.themes.filter(function (th) { return th.id === game.theme; })[0] ||
+      { color: "#EC4C8A", soft: "#FDE8F0" };
+    var home = "../../index.html" + (game.theme ? "#" + game.theme : "");
+    var root = document.getElementById("game");
+
+    document.documentElement.style.setProperty("--c", theme.color);
+    document.documentElement.style.setProperty("--soft", theme.soft);
+
+    var lang, level, setup, state, els = {};
+    var timers = [];
+    var songStars = {};   // best stars per song in this visit
+
+    function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+    function stopTimers() { timers.forEach(clearTimeout); timers = []; }
+
+    function seg(attr, items, current) {
+      return '<div class="g-seg" role="group">' + items.map(function (it) {
+        var on = String(it.value) === String(current);
+        return '<button type="button" class="g-seg__btn' + (it.cls ? " " + it.cls : "") + (on ? " is-active" : "") +
+          '" data-' + attr + '="' + it.value + '" aria-pressed="' + on + '"' +
+          (it.lang ? ' lang="' + it.lang + '"' : "") + ">" + it.label + "</button>";
+      }).join("") + "</div>";
+    }
+
+    /* ----- Page shell ----- */
+
+    function build() {
+      lang = S.get("lang");
+      level = S.getLevel(GAME_ID);
+      setup = LEVEL_SETUP[level];
+      var levelInfo = S.LEVELS.filter(function (l) { return l.id === level; })[0];
+      var title = S.tr(game.title);
+      var lvSub = { easy: "lvEasy", medium: "lvMedium", hard: "lvHard" };
+
+      document.documentElement.lang = lang;
+      document.title = title + " · Play & Learn";
+
+      root.innerHTML =
+        '<header class="g-top">' +
+          '<a class="g-back" href="' + home + '">' +
+            '<span aria-hidden="true">←</span> <span class="g-back__label">' + esc(t("allGames")) + "</span></a>" +
+          '<div class="g-title"><span aria-hidden="true">' + game.icon + "</span> " + esc(title) + "</div>" +
+          '<div class="g-right">' +
+            '<button class="g-gear" type="button" id="g-gear" aria-expanded="false" aria-controls="g-panel" title="' + esc(t("settings")) + '">' +
+              '<span aria-hidden="true">⚙️</span><span class="g-gear__lang">' + esc(S.langInfo(lang).label) + "</span>" +
+              '<span class="g-gear__level">' + levelInfo.icon +
+                '<span class="g-gear__lvname"> ' + esc(S.tr(levelInfo.name)) + "</span></span>" +
+            "</button>" +
+          "</div>" +
+          '<div class="g-panel" id="g-panel" hidden>' +
+            '<div class="g-panel__row"><span class="g-panel__label">🌐 ' + esc(t("language")) + "</span>" +
+              seg("lang", S.LANGS.map(function (l) { return { value: l.id, label: esc(l.label), lang: l.id }; }), lang) +
+            "</div>" +
+            '<div class="g-panel__row"><span class="g-panel__label">🎯 ' + esc(t("level")) + "</span>" +
+              seg("level", S.LEVELS.map(function (l) {
+                return { value: l.id, cls: "mm-lv",
+                  label: l.icon + "&nbsp;" + esc(S.tr(l.name)) + "<small>" + esc(t(lvSub[l.id])) + "</small>" };
+              }), level) +
+            "</div>" +
+            '<p class="g-panel__note">' + esc(t("restartNote")) + "</p>" +
+          "</div>" +
+        "</header>" +
+        '<main class="g-stage"><div class="g-card" id="g-card"></div></main>';
+
+      els.card = document.getElementById("g-card");
+      els.panel = document.getElementById("g-panel");
+      els.gear = document.getElementById("g-gear");
+
+      els.gear.addEventListener("click", function (e) { e.stopPropagation(); togglePanel(els.panel.hidden); });
+      els.panel.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var btn = e.target.closest("[data-lang],[data-level]");
+        if (!btn) return;
+        if (btn.hasAttribute("data-lang")) {
+          // Language only changes the words — the game keeps going.
+          S.set("lang", btn.getAttribute("data-lang"));
+          build();
+          if (state.phase === "over") finish(state.won); else render();
+          togglePanel(true);
+          return;
+        }
+        S.setLevel(GAME_ID, btn.getAttribute("data-level"));
+        build();
+        var mode = state && state.mode, song = state && state.song;
+        if (mode === "grow") startGrow();
+        else if (mode === "song" && song != null) startSong(song);
+        else if (state && state.phase === "songs") showSongs();
+        else showIntro();
+        togglePanel(true);
+      });
+    }
+
+    function togglePanel(open) {
+      if (!els.panel) return;
+      els.panel.hidden = !open;
+      els.gear.setAttribute("aria-expanded", String(open));
+    }
+    document.addEventListener("click", function () { togglePanel(false); });
+
+    /* ----- Start screens ----- */
+
+    function showIntro() {
+      stopTimers();
+      state = { phase: "intro" };
+      render();
+    }
+
+    function showSongs() {
+      stopTimers();
+      state = { phase: "songs" };
+      render();
+    }
+
+    /* ----- One game ----- */
+
+    function startGrow() {
+      stopTimers();
+      var rounds = setup.goal - setup.start + 1;
+      state = {
+        phase: "listen", mode: "grow", song: null,
+        keys: setup.keys.slice(),
+        melody: makeMelody(setup.keys, setup.goal),
+        lengths: Array.apply(null, { length: rounds }).map(function (_, i) { return setup.start + i; }),
+        beatScale: 1,
+        round: 0, hearts: HEARTS, taps: [], lit: 0, won: false, best: 0
+      };
+      startListen(500);
+    }
+
+    function startSong(idx) {
+      stopTimers();
+      var song = SONGS[idx];
+      var used = song.notes.map(function (n) { return n[0]; })
+        .filter(function (n, k, a) { return a.indexOf(n) === k; })
+        .sort(function (a, b) { return a - b; });
+      state = {
+        phase: "listen", mode: "song", song: idx,
+        keys: used,
+        melody: song.notes.map(function (n) { return { n: n[0], d: n[1] }; }),
+        lengths: song.parts.slice(Math.min(setup.skip, song.parts.length - 1)),
+        beatScale: 0.85,
+        round: 0, hearts: HEARTS, taps: [], lit: 0, won: false, best: 0
+      };
+      startListen(500);
+    }
+
+    function curLen() { return state.lengths[state.round]; }
+
+    function render() {
+      if (state.phase === "intro") {
+        els.card.innerHTML =
+          '<div class="mm-intro">' +
+            '<div class="mm-intro__icon" aria-hidden="true">🎶</div>' +
+            '<h1 class="mm-intro__title">' + esc(t("introTitle")) + "</h1>" +
+            '<p class="mm-intro__rules">' + esc(t("introRules")) + "</p>" +
+            (AudioCtx
+              ? '<div class="mm-choices">' +
+                  choiceHTML("grow", "🎹", t("modeGrow"), t("modeGrowDesc")) +
+                  choiceHTML("songs", "🎵", t("modeSongs"), t("modeSongsDesc")) +
+                "</div>" +
+                '<p class="mm-sub" style="margin-top:16px">' + esc(t("soundHint")) + "</p>"
+              : '<p class="g-feedback is-wrong">' + esc(t("noAudio")) + "</p>") +
+          "</div>";
+        bindChoices(function (v) {
+          ensureAudio();
+          if (v === "grow") startGrow(); else showSongs();
+        });
+        return;
+      }
+
+      if (state.phase === "songs") {
+        els.card.innerHTML =
+          '<div class="mm-intro">' +
+            '<div class="mm-intro__icon" aria-hidden="true">🎵</div>' +
+            '<h1 class="mm-intro__title">' + esc(t("pickSong")) + "</h1>" +
+            '<div class="mm-choices" style="margin-top:18px">' +
+              SONGS.map(function (s, i) {
+                var st = songStars[s.id] || 0;
+                return choiceHTML(String(i), s.icon, S.tr(s.title), t("notesN").replace("{n}", s.notes.length),
+                  st ? new Array(st + 1).join("★") : "");
+              }).join("") +
+            "</div>" +
+            '<button class="g-btn mm-back" type="button" id="mm-back">' + esc(t("back")) + "</button>" +
+          "</div>";
+        bindChoices(function (v) { ensureAudio(); startSong(Number(v)); });
+        document.getElementById("mm-back").addEventListener("click", showIntro);
+        return;
+      }
+
+      var prompt = { listen: t("listen"), play: t("play") }[state.phase] || state.msg;
+      var sub = { listen: t("listenSub"), play: t("playSub") }[state.phase];
+      if (sub == null) sub = state.sub;
+      var promptCls = state.phase === "good" ? " is-right" : state.phase === "bad" ? " is-wrong" : "";
+
+      var actions = "";
+      if (state.phase === "play") {
+        actions = '<button class="g-btn" type="button" data-act="listen">🔁&nbsp;' + esc(t("againBtn")) + "</button>";
+      } else if (state.phase === "bad" && state.hearts > 0) {
+        actions = '<button class="g-btn g-btn--primary" type="button" data-act="listen">🔁&nbsp;' + esc(t("retryBtn")) + "</button>";
+      }
+
+      els.card.innerHTML =
+        statsHTML() +
+        '<h1 class="mm-prompt g-feedback' + promptCls + '" aria-live="polite">' + esc(prompt) + "</h1>" +
+        '<p class="mm-sub">' + esc(sub) + "</p>" +
+        '<div class="mm-melody" id="mm-melody">' + dotsHTML() + "</div>" +
+        xyloHTML() +
+        '<p class="g-feedback">' + esc(state.fb || "") + "</p>" +
+        '<div class="mm-actions">' + actions + "</div>";
+
+      els.xylo = document.getElementById("mm-xylo");
+      els.melody = document.getElementById("mm-melody");
+
+      els.xylo.addEventListener("pointerdown", function (e) {
+        var btn = e.target.closest("[data-note]");
+        if (!btn || (e.pointerType === "mouse" && e.button !== 0)) return;
+        e.preventDefault();
+        tap(Number(btn.getAttribute("data-note")));
+      });
+      // Keyboard Enter / Space on a focused bar (pointer taps are handled above).
+      els.xylo.addEventListener("click", function (e) {
+        var btn = e.target.closest("[data-note]");
+        if (btn && e.detail === 0) tap(Number(btn.getAttribute("data-note")));
+      });
+      els.card.querySelectorAll("[data-act=listen]").forEach(function (b) {
+        b.addEventListener("click", function () { startListen(250); });
+      });
+    }
+
+    function choiceHTML(value, icon, name, desc, extra) {
+      return '<button type="button" class="mm-choice" data-choice="' + esc(value) + '">' +
+        '<span class="mm-choice__icon" aria-hidden="true">' + icon + "</span>" +
+        '<span class="mm-choice__name">' + esc(name) + "</span>" +
+        '<span class="mm-choice__desc">' + esc(desc) + "</span>" +
+        (extra != null ? '<span class="mm-choice__done" aria-hidden="true">' + extra + "</span>" : "") +
+      "</button>";
+    }
+
+    function bindChoices(fn) {
+      els.card.querySelectorAll("[data-choice]").forEach(function (b) {
+        b.addEventListener("click", function () { fn(b.getAttribute("data-choice")); });
+      });
+    }
+
+    function statsHTML() {
+      var label = state.mode === "song"
+        ? SONGS[state.song].icon + ' <span class="mm-stat__label">' + esc(S.tr(SONGS[state.song].title)) + "</span>"
+        : '🎹 <span class="mm-stat__label">' + esc(t("modeGrow")) + "</span>";
+      return '<div class="mm-stats">' +
+        '<span class="mm-stat">' + label + "</span>" +
+        '<span class="mm-stat">🎵 <span>' + esc(t("roundN")) + " <b>" + (state.round + 1) + "</b>/" + state.lengths.length + "</span></span>" +
+        '<span class="mm-stat mm-hearts" aria-label="' + state.hearts + '/3">' +
+          new Array(state.hearts + 1).join("❤️") + new Array(HEARTS - state.hearts + 1).join("🤍") + "</span>" +
+      "</div>";
+    }
+
+    /** One bubble per note of the current melody. */
+    function dotsHTML() {
+      var html = "";
+      for (var k = 0; k < curLen(); k++) {
+        var note = state.melody[k].n, cls = "", show = note, label = "?";
+        var tp = state.taps[k];
+        if (state.phase === "listen") {
+          if (k < state.lit) cls = " is-on";
+        } else if (tp) {
+          cls = tp.ok ? " is-ok" : " is-bad";
+          show = tp.n;
+        } else if (state.phase === "good") {
+          cls = " is-ok";
+        } else if (setup.ghost) {
+          cls = " is-ghost";
+        }
+        if (cls) label = S.tr(NOTES[show].name);
+        html += '<span class="mm-dot' + cls + '" data-k="' + k + '" style="--pc:' + NOTES[show].color + '">' +
+          (cls ? esc(label) : "?") + "</span>";
+      }
+      return html;
+    }
+
+    function xyloHTML() {
+      var keys = state.keys, n = keys.length;
+      var bars = keys.map(function (note, i) {
+        var p = NOTES[note];
+        // low notes are long bars, high notes short ones
+        var h = 100 - (note / 7) * 34;
+        return '<button type="button" class="mm-bar" data-note="' + note + '" style="--pc:' + p.color +
+          ";--h:" + h + "%;--i:" + i + '" aria-label="' + esc(S.tr(p.name)) + '">' +
+          '<span class="mm-bar__name">' + esc(S.tr(p.name)) + "</span>" +
+          '<span class="mm-bar__key" aria-hidden="true">' + (i + 1) + "</span></button>";
+      }).join("");
+      return '<div class="mm-xylo' + (state.phase === "listen" ? " is-listening" : "") + '" id="mm-xylo" style="--n:' + n + '">' +
+        '<div class="mm-bars">' + bars + "</div></div>";
+    }
+
+    function flashBar(note, cls, ms) {
+      var el = els.xylo && els.xylo.querySelector('[data-note="' + note + '"]');
+      if (!el) return;
+      cls = cls || "is-hit";
+      el.classList.remove(cls);
+      void el.offsetWidth;                     // restart the animation
+      el.classList.add(cls);
+      setTimeout(function () { el.classList.remove(cls); }, ms || 170);
+      if (cls === "is-hit" || cls === "is-lit") {
+        var fly = document.createElement("span");
+        fly.className = "mm-note";
+        fly.setAttribute("aria-hidden", "true");
+        fly.textContent = pick(["♪", "♫", "♩"]);
+        fly.style.setProperty("--pc", NOTES[note].color);
+        el.appendChild(fly);
+        setTimeout(function () { if (fly.parentNode) fly.parentNode.removeChild(fly); }, 750);
+      }
+    }
+
+    /* ----- Listening: the xylophone plays ----- */
+
+    function startListen(delay) {
+      stopTimers();
+      state.phase = "listen";
+      state.taps = [];
+      state.lit = 0;
+      state.fb = state.fbNext || "";
+      state.fbNext = "";
+      render();
+
+      var beat = setup.beat * state.beatScale, at = 0, lead = delay || 0;
+      for (var k = 0; k < curLen(); k++) {
+        (function (k, when) {
+          var note = state.melody[k].n;
+          later(function () {
+            playNote(note);
+            flashBar(note, "is-lit", Math.min(beat * 0.55, 300));
+            state.lit = k + 1;
+            var dot = els.melody && els.melody.querySelector('[data-k="' + k + '"]');
+            if (dot) {
+              dot.className = "mm-dot is-on";
+              dot.textContent = S.tr(NOTES[note].name);
+            }
+          }, lead + when);
+        })(k, at);
+        at += state.melody[k].d * beat;
+      }
+      later(function () {
+        state.phase = "play";
+        state.fb = "";
+        render();
+      }, lead + at - state.melody[curLen() - 1].d * beat + Math.max(beat * 1.1, 600));
+    }
+
+    /* ----- Playing: the child taps the bars ----- */
+
+    function tap(note) {
+      if (!state || state.phase === "listen" || state.phase === "over" || !state.keys) return;
+      playNote(note);
+      flashBar(note);
+      if (state.phase !== "play") return;      // free play between rounds — just make the sound
+
+      var k = state.taps.length;
+      var want = state.melody[k].n;
+      var ok = note === want;
+      state.taps.push({ n: note, ok: ok });
+
+      var dot = els.melody.querySelector('[data-k="' + k + '"]');
+      if (dot) {
+        dot.className = "mm-dot " + (ok ? "is-ok" : "is-bad");
+        dot.style.setProperty("--pc", NOTES[note].color);
+        dot.textContent = S.tr(NOTES[note].name);
+      }
+      if (!ok) { mistake(want); return; }
+      if (state.taps.length === curLen()) success();
+    }
+
+    function success() {
+      state.phase = "good";
+      state.best = Math.max(state.best, curLen());
+      state.msg = pick(S.tr(UI.praise));
+      state.sub = "";
+      state.fb = "";
+      render();
+      later(function () {
+        els.xylo.classList.add("is-happy");
+        playJingle();
+      }, 300);
+
+      later(function () {
+        if (state.round + 1 >= state.lengths.length) { finish(true); return; }
+        state.round++;
+        if (state.mode === "grow") state.fbNext = t("newNote");
+        startListen(700);
+      }, 1900);
+    }
+
+    function mistake(want) {
+      state.phase = "bad";
+      state.hearts = Math.max(0, state.hearts - 1);
+      state.msg = t("oops");
+      state.sub = t("wrongNote").replace("{s}", S.tr(NOTES[want].name));
+      state.fb = "";
+      playBuzz();
+      var wrong = state.taps[state.taps.length - 1].n;
+      render();
+      flashBar(wrong, "is-wrong", 420);
+      later(function () { flashBar(want, "is-hint", 1100); }, 250);
+      later(function () { playNote(want); }, 700);
+      if (state.hearts === 0) later(function () { finish(false); }, 2600);
+    }
+
+    /* ----- End of the game ----- */
+
+    function finish(won) {
+      stopTimers();
+      state.phase = "over";
+      state.won = won;
+      var idx = S.LEVELS.map(function (l) { return l.id; }).indexOf(level);
+      var rounds = state.lengths.length;
+      var done = won ? rounds : state.round;
+      var stars = won ? Math.max(1, state.hearts) : done >= rounds * 0.6 ? 2 : done >= 1 ? 1 : 0;
+      var title = won ? t("end" + stars) : t("endLose");
+      var score;
+      if (state.mode === "song") {
+        var s = SONGS[state.song], name = esc(S.tr(s.title));
+        songStars[s.id] = Math.max(songStars[s.id] || 0, stars);
+        score = won
+          ? t("endSongWin").replace("{s}", name).replace("{h}", state.hearts)
+          : t("endSongLose").replace("{s}", name).replace("{p}", done).replace("{n}", rounds);
+      } else {
+        score = won
+          ? t("endGrowWin").replace("{n}", curLen()).replace("{h}", state.hearts)
+          : t("endGrowLose").replace("{n}", state.best || 0);
+      }
+      var next = won && stars === 3 ? S.LEVELS[idx + 1] : null;
+
+      els.card.innerHTML =
+        '<div class="g-end">' +
+          '<div class="g-stars" aria-label="' + esc(t("stars").replace("{n}", stars)) + '">' +
+            [1, 2, 3].map(function (i) {
+              return '<span class="g-star' + (i <= stars ? " is-on" : "") + '" style="animation-delay:' + (i * 0.15) + 's">★</span>';
+            }).join("") +
+          "</div>" +
+          '<h1 class="g-end__title">' + esc(title) + "</h1>" +
+          '<p class="g-end__score">' + score + "</p>" +
+          '<div class="g-end__actions">' +
+            (next ? '<button class="g-btn g-btn--primary" type="button" id="g-next">' + next.icon + " " +
+              esc(t("nextLevel").replace("{l}", S.tr(next.name))) + "</button>" : "") +
+            '<button class="g-btn' + (next ? "" : " g-btn--primary") + '" type="button" id="g-again">' + esc(t("again")) + "</button>" +
+            '<button class="g-btn" type="button" id="g-other">' + esc(t(state.mode === "song" ? "otherSong" : "otherMode")) + "</button>" +
+            '<a class="g-btn" href="' + home + '">' + esc(t("more")) + "</a>" +
+          "</div>" +
+        "</div>";
+
+      if (won) playJingle();
+      var mode = state.mode, song = state.song;
+      function replay() { if (mode === "song") startSong(song); else startGrow(); }
+      document.getElementById("g-again").addEventListener("click", replay);
+      document.getElementById("g-other").addEventListener("click", function () {
+        if (mode === "song") showSongs(); else showIntro();
+      });
+      if (next) document.getElementById("g-next").addEventListener("click", function () {
+        S.setLevel(GAME_ID, next.id);
+        build();
+        replay();
+      });
+    }
+
+    /* ----- Keyboard: 1–8 play the bars ----- */
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { togglePanel(false); return; }
+      if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || !state || !state.keys || !els.xylo) return;
+      var n = Number(e.key);
+      if (n >= 1 && n <= state.keys.length && document.body.contains(els.xylo)) {
+        e.preventDefault();
+        ensureAudio();
+        tap(state.keys[n - 1]);
+      }
+    });
+
+    build();
+    showIntro();
+  })();
+  </script>
+</body>
+</html>
