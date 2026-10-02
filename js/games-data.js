@@ -244,12 +244,11 @@ window.LEARNING_GAMES = {
       icon: "🎨",
       ages: "4–7",
       url: "games/color-mixer/index.html",
-      status: "soon",
       title: { en: "Color Mixer", hy: "Խառնիր ներկերը", ru: "Смешай краски" },
       description: {
-        en: "Mix two paints and discover a brand-new colour.",
-        hy: "Խառնի՛ր երկու ներկ և ստացի՛ր նոր գույն։",
-        ru: "Смешай две краски и открой новый цвет."
+        en: "Pour paints into the bowl, mix them and make the colour asked — or mix freely and fill your palette. 3 levels.",
+        hy: "Լցրո՛ւ ներկերը ամանի մեջ, խառնի՛ր և ստացի՛ր պահանջված գույնը, կամ խառնի՛ր ազատ և լրացրո՛ւ քո ներկապնակը։ 3 մակարդակ։",
+        ru: "Наливай краски в миску, смешивай и получай нужный цвет — или смешивай свободно и собирай свою палитру. 3 уровня."
       }
     }
   ]

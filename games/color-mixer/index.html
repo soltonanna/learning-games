@@ -1,0 +1,1134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Color Mixer · Play &amp; Learn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700;800&family=Noto+Sans+Armenian:wght@500;600;700;800&display=swap">
+  <link rel="stylesheet" href="../shared/game.css">
+  <style>
+    :root { --bw: clamp(170px, 44vw, 230px); }
+
+    /* ---------- Mode tabs ---------- */
+    .cm-tabs {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 16px;
+    }
+    .cm-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 44px;
+      padding: 6px 16px;
+      border-radius: 999px;
+      border: 3px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .cm-tab:hover { border-color: var(--c); }
+    .cm-tab.is-active { background: var(--c); border-color: var(--c); color: #fff; }
+    .cm-tab:focus-visible { outline: 3px solid var(--c); outline-offset: 2px; }
+
+    /* ---------- Lab: target + bowl ---------- */
+    .cm-lab {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: clamp(12px, 4vw, 36px);
+      margin: 16px 0 14px;
+      padding: 14px 14px 18px;
+      border-radius: 24px;
+      background: var(--soft);
+    }
+
+    .cm-target {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      flex: 0 1 140px;
+      min-width: 0;
+      padding-bottom: 6px;
+      text-align: center;
+    }
+    .cm-target__label {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--ink-soft);
+    }
+    .cm-splat {
+      width: clamp(80px, 22vw, 112px);
+      aspect-ratio: 1;
+      border-radius: 46% 54% 58% 42% / 52% 44% 56% 48%;
+      background: var(--col);
+      box-shadow: inset 0 -9px 0 rgba(0,0,0,.12), inset 8px 8px 0 rgba(255,255,255,.22), 0 10px 18px -10px rgba(0,0,0,.4);
+      animation: cm-wobble 3s ease-in-out infinite;
+    }
+    .cm-splat.is-light { outline: 3px solid #E6DED2; outline-offset: -3px; }
+    @keyframes cm-wobble { 50% { border-radius: 54% 46% 44% 56% / 46% 56% 44% 54%; transform: rotate(4deg); } }
+    .cm-target__name {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: clamp(15px, 4vw, 21px);
+      line-height: 1.1;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+    }
+    .cm-target__need {
+      padding: 2px 10px;
+      border-radius: 999px;
+      background: #fff;
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .cm-bowlwrap {
+      position: relative;
+      flex: none;
+      width: var(--bw);
+      padding-top: 70px;
+    }
+    .cm-bowl {
+      position: relative;
+      width: 100%;
+      height: calc(var(--bw) * .56);
+      border: 6px solid #E4D9EE;
+      border-top: 0;
+      border-radius: 10px 10px 50% 50% / 10px 10px 100% 100%;
+      background: linear-gradient(180deg, #FFFFFF, #F6F1FA);
+      box-shadow: 0 16px 22px -14px rgba(43, 35, 64, .45);
+      overflow: hidden;
+    }
+    .cm-bowl::before {
+      content: "";
+      position: absolute;
+      left: -6px;
+      right: -6px;
+      top: 0;
+      height: 8px;
+      background: #E4D9EE;
+      border-radius: 999px;
+      z-index: 2;
+    }
+    .cm-paint {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 0;
+      overflow: hidden;
+      border-radius: 50% 50% 0 0 / 16px 16px 0 0;
+      transition: height .45s ease;
+    }
+    .cm-swirl {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 340px;
+      height: 340px;
+      margin: -170px 0 0 -170px;
+      border-radius: 50%;
+      background: var(--swirl, transparent);
+    }
+    .cm-result {
+      position: absolute;
+      inset: 0;
+      background: var(--res, transparent);
+      opacity: 0;
+      transition: opacity .7s ease;
+    }
+    .cm-bowl.is-mixing .cm-swirl { animation: cm-spin .55s linear 2; }
+    .cm-bowl.is-mixed .cm-result { opacity: 1; }
+    .cm-bowl.is-right { border-color: var(--right); }
+    .cm-bowl.is-right::before { background: var(--right); }
+    @keyframes cm-spin { to { transform: rotate(360deg); } }
+
+    .cm-spoon {
+      position: absolute;
+      right: 14%;
+      bottom: 34%;
+      font-size: 48px;
+      line-height: 1;
+      opacity: 0;
+      transform-origin: 50% 90%;
+      pointer-events: none;
+      z-index: 3;
+    }
+    .cm-bowlwrap.is-mixing .cm-spoon { opacity: 1; animation: cm-stir .5s ease-in-out 2; }
+    @keyframes cm-stir { 0%, 100% { transform: rotate(-20deg) translateX(-10px); } 50% { transform: rotate(20deg) translateX(-50px); } }
+
+    .cm-drop {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 26px;
+      height: 26px;
+      margin-left: -13px;
+      border-radius: 50% 0 50% 50%;
+      background: var(--col);
+      transform: rotate(-45deg);
+      box-shadow: inset -3px -3px 0 rgba(0,0,0,.12);
+      animation: cm-fall .5s ease-in forwards;
+      z-index: 4;
+      pointer-events: none;
+    }
+    .cm-drop.is-light { outline: 2px solid #D9CFE2; }
+    @keyframes cm-fall {
+      from { transform: translateY(0) rotate(-45deg) scale(.6); opacity: 0; }
+      15% { opacity: 1; }
+      to { transform: translateY(calc(var(--bw) * .45 + 40px)) rotate(-45deg) scale(1); opacity: .2; }
+    }
+
+    /* ---------- Equation ---------- */
+    .cm-eq {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 6px 8px;
+      min-height: 44px;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 22px;
+      color: var(--ink-soft);
+    }
+    .cm-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px 4px 5px;
+      border-radius: 999px;
+      background: #fff;
+      border: 2px solid var(--line);
+      color: var(--ink);
+      font-size: 16px;
+      animation: g-bounce .35s ease;
+    }
+    .cm-chip__dot {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--col);
+      box-shadow: inset 0 -3px 0 rgba(0,0,0,.12);
+    }
+    .cm-chip__dot.is-light { outline: 2px solid #E6DED2; outline-offset: -2px; }
+    .cm-slot {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 3px dashed #D9CFE2;
+    }
+    .cm-slot--opt { opacity: .5; }
+    .cm-chip--result { border-color: var(--c); }
+    .cm-q {
+      display: inline-grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--soft);
+      color: var(--c);
+    }
+
+    /* ---------- Paint pots ---------- */
+    .cm-pots {
+      display: grid;
+      grid-template-columns: repeat(var(--n, 5), minmax(0, 92px));
+      justify-content: center;
+      gap: 10px;
+      margin: 16px 0 0;
+    }
+    .cm-pot {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      min-width: 0;
+      padding: 10px 4px 8px;
+      border-radius: 20px;
+      border: 3px solid var(--line);
+      border-bottom-width: 6px;
+      background: #fff;
+      color: var(--ink);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      transition: transform .12s ease, border-color .12s ease, opacity .2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .cm-pot:hover:not(:disabled) { border-color: var(--c); transform: translateY(-3px); }
+    .cm-pot:active:not(:disabled) { transform: translateY(2px); border-bottom-width: 3px; }
+    .cm-pot:focus-visible { outline: 4px solid var(--c); outline-offset: 2px; }
+    .cm-pot:disabled { cursor: default; }
+    .cm-pot__blob {
+      width: clamp(42px, 11vw, 58px);
+      aspect-ratio: 1;
+      border-radius: 50% 50% 46% 46%;
+      background: radial-gradient(circle at 32% 28%, rgba(255,255,255,.55) 0 14%, transparent 15%), var(--col);
+      box-shadow: inset 0 -6px 0 rgba(0,0,0,.14);
+    }
+    .cm-pot__blob.is-light { outline: 3px solid #E6DED2; outline-offset: -3px; }
+    .cm-pot__name {
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .cm-pot.is-used { opacity: .45; }
+    .cm-pot.is-used::after {
+      content: "✓";
+      position: absolute;
+      top: 4px;
+      right: 8px;
+      color: var(--right);
+      font-weight: 800;
+    }
+    .cm-pot.is-hint { border-color: #FFC531; background: #FFF6D6; animation: cm-hint 1s ease infinite; }
+    @keyframes cm-hint { 50% { transform: translateY(-6px) scale(1.06); } }
+
+    .cm-actions {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .cm-actions .g-btn { min-height: 48px; padding: 6px 20px; font-size: 17px; }
+    .cm-actions .g-btn:disabled { opacity: .45; cursor: default; }
+
+    /* ---------- Free mode palette ---------- */
+    .cm-book {
+      margin-top: 18px;
+      padding: 14px;
+      border-radius: 22px;
+      border: 3px dashed var(--line);
+    }
+    .cm-book__title {
+      margin: 0 0 10px;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 18px;
+      text-align: center;
+    }
+    .cm-book__title b { color: var(--c); }
+    .cm-book__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+      gap: 8px;
+    }
+    .cm-swatch {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 2px;
+      border: 0;
+      border-radius: 14px;
+      background: transparent;
+      color: var(--ink);
+      font-family: var(--font-body);
+      font-weight: 800;
+      font-size: 12px;
+      line-height: 1.15;
+      text-align: center;
+      cursor: pointer;
+    }
+    .cm-swatch:hover:not(:disabled) { background: var(--soft); }
+    .cm-swatch:disabled { cursor: default; color: var(--ink-soft); }
+    .cm-swatch__dot {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--col);
+      box-shadow: inset 0 -4px 0 rgba(0,0,0,.12);
+    }
+    .cm-swatch__dot.is-light { outline: 2px solid #E6DED2; outline-offset: -2px; }
+    .cm-swatch:disabled .cm-swatch__dot {
+      display: grid;
+      place-items: center;
+      background: #fff;
+      border: 3px dashed #D9CFE2;
+      box-shadow: none;
+      color: #C9BCD6;
+      font-family: var(--font-display);
+      font-size: 18px;
+    }
+    .cm-swatch.is-new .cm-swatch__dot { animation: g-star .5s ease both; }
+
+    .g-score[hidden], .g-progress[hidden] { display: none; }
+
+    @media (max-width: 600px) {
+      .cm-tab { font-size: 15px; padding: 6px 12px; }
+      :root { --bw: clamp(146px, 41vw, 230px); }
+      .cm-pots { gap: 4px; }
+      .cm-pot { padding: 8px 0 6px; font-size: 11px; letter-spacing: -.2px; border-width: 2px; border-bottom-width: 5px; border-radius: 16px; }
+      .cm-pot__name { overflow: visible; text-overflow: clip; }
+      .cm-lab { gap: 10px; padding: 12px 8px 16px; }
+      .cm-target__name { font-size: 14px; }
+      .cm-eq { font-size: 18px; }
+      .cm-chip { font-size: 14px; }
+      .cm-bowlwrap { padding-top: 56px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+
+  <script src="../../js/settings.js"></script>
+  <script src="../../js/games-data.js"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    var S = window.PlaySettings;
+    var GAME_ID = "color-mixer";
+    var ROUNDS = 10;
+
+    /* ======================================================================
+       PAINTS the child can pour into the bowl.
+       ====================================================================== */
+    var PAINTS = {
+      red:    { hex: "#E8343C", name: { en: "red",    hy: "կարմիր", ru: "красный" } },
+      yellow: { hex: "#FFD23F", name: { en: "yellow", hy: "դեղին",  ru: "жёлтый" } },
+      blue:   { hex: "#2F6FE4", name: { en: "blue",   hy: "կապույտ", ru: "синий" } },
+      white:  { hex: "#FFFFFF", name: { en: "white",  hy: "սպիտակ", ru: "белый" }, light: true },
+      black:  { hex: "#26222B", name: { en: "black",  hy: "սև",     ru: "чёрный" } }
+    };
+    var PAINT_ORDER = ["red", "yellow", "blue", "white", "black"];
+
+    /* ======================================================================
+       COLOURS you can get by mixing, and the RECIPES that make them.
+       A recipe with a colour id of null makes a colour with no simple name
+       (it still shows in the bowl, it just isn't a target).
+       ====================================================================== */
+    var COLORS = {
+      orange:     { hex: "#FF8A1F", name: { en: "orange",      hy: "նարնջագույն",        ru: "оранжевый" } },
+      green:      { hex: "#34B14A", name: { en: "green",       hy: "կանաչ",              ru: "зелёный" } },
+      purple:     { hex: "#8A45C8", name: { en: "purple",      hy: "մանուշակագույն",      ru: "фиолетовый" } },
+      pink:       { hex: "#FF9DC0", name: { en: "pink",        hy: "վարդագույն",          ru: "розовый" } },
+      lightblue:  { hex: "#8CCBFF", name: { en: "light blue",  hy: "երկնագույն",          ru: "голубой" } },
+      gray:       { hex: "#9A9EA6", name: { en: "gray",        hy: "մոխրագույն",          ru: "серый" } },
+      lightyellow:{ hex: "#FFF09A", name: { en: "light yellow", hy: "բաց դեղին",          ru: "светло-жёлтый" }, light: true },
+      darkred:    { hex: "#8E1E2C", name: { en: "dark red",    hy: "մուգ կարմիր",         ru: "тёмно-красный" } },
+      darkblue:   { hex: "#1D2F7A", name: { en: "dark blue",   hy: "մուգ կապույտ",        ru: "тёмно-синий" } },
+      olive:      { hex: "#8C8A24", name: { en: "olive",       hy: "ձիթապտղագույն",       ru: "оливковый" } },
+      brown:      { hex: "#8A5428", name: { en: "brown",       hy: "շագանակագույն",       ru: "коричневый" } },
+      peach:      { hex: "#FFC09A", name: { en: "peach",       hy: "դեղձագույն",          ru: "персиковый" } },
+      lilac:      { hex: "#C8A6F2", name: { en: "lilac",       hy: "յասամանագույն",       ru: "сиреневый" } },
+      lightgreen: { hex: "#A6E59A", name: { en: "light green", hy: "բաց կանաչ",           ru: "светло-зелёный" } },
+      darkgreen:  { hex: "#1E6634", name: { en: "dark green",  hy: "մուգ կանաչ",          ru: "тёмно-зелёный" } },
+      darkpurple: { hex: "#4A1F6E", name: { en: "dark purple", hy: "մուգ մանուշակագույն", ru: "тёмно-фиолетовый" } }
+    };
+    var COLOR_ORDER = Object.keys(COLORS);
+
+    var RECIPES = [
+      // two paints
+      [["red", "yellow"], "orange"],
+      [["yellow", "blue"], "green"],
+      [["red", "blue"], "purple"],
+      [["red", "white"], "pink"],
+      [["blue", "white"], "lightblue"],
+      [["white", "black"], "gray"],
+      [["yellow", "white"], "lightyellow"],
+      [["red", "black"], "darkred"],
+      [["blue", "black"], "darkblue"],
+      [["yellow", "black"], "olive"],
+      // three paints
+      [["red", "yellow", "blue"], "brown"],
+      [["red", "yellow", "black"], "brown"],
+      [["red", "yellow", "white"], "peach"],
+      [["red", "blue", "white"], "lilac"],
+      [["yellow", "blue", "white"], "lightgreen"],
+      [["yellow", "blue", "black"], "darkgreen"],
+      [["red", "blue", "black"], "darkpurple"],
+      [["red", "white", "black"], null, "#B48A90"],
+      [["yellow", "white", "black"], null, "#C9C08E"],
+      [["blue", "white", "black"], null, "#6E7F96"]
+    ];
+
+    /* ======================================================================
+       LEVELS
+         paints   pots on the table
+         bowl     how many paints fit in the bowl
+         targets  colours asked in "Make the colour" (more copies = asked more often)
+       ====================================================================== */
+    var LEVEL_CFG = {
+      easy:   { paints: ["red", "yellow", "blue"], bowl: 2,
+                targets: ["orange", "green", "purple"] },
+      medium: { paints: PAINT_ORDER, bowl: 2,
+                targets: ["orange", "green", "purple", "pink", "lightblue", "gray", "lightyellow", "darkred", "darkblue", "olive"] },
+      hard:   { paints: PAINT_ORDER, bowl: 3,
+                targets: ["brown", "peach", "lilac", "lightgreen", "darkgreen", "darkpurple",
+                          "brown", "peach", "lilac", "lightgreen", "darkgreen", "darkpurple",
+                          "orange", "green", "purple", "pink", "lightblue", "gray", "darkred", "darkblue"] }
+    };
+
+    /* ---------- Texts ---------- */
+    var UI = {
+      allGames: { en: "All games", hy: "Բոլոր խաղերը", ru: "Все игры" },
+      settings: { en: "Settings", hy: "Կարգավորումներ", ru: "Настройки" },
+      language: { en: "Language", hy: "Լեզու", ru: "Язык" },
+      level: { en: "Level", hy: "Մակարդակ", ru: "Уровень" },
+      score: { en: "Score", hy: "Միավորներ", ru: "Очки" },
+      readAloud: { en: "Read aloud", hy: "Կարդալ բարձրաձայն", ru: "Прочитать вслух" },
+      levelNote: {
+        en: "Changing the level starts the game again.",
+        hy: "Մակարդակը փոխելիս խաղը նորից կսկսվի։",
+        ru: "После смены уровня игра начнётся заново."
+      },
+      modeGame: { en: "Make the colour", hy: "Ստացիր գույնը", ru: "Получи цвет" },
+      modeFree: { en: "Free mixing", hy: "Ազատ խառնում", ru: "Свободное смешивание" },
+      askMake: { en: "Make {c}!", hy: "Պատրաստի՛ր {c} ներկ։", ru: "Получи {c} цвет!" },
+      askFree2: {
+        en: "Pick two paints and see what colour you get!",
+        hy: "Ընտրի՛ր երկու ներկ և տե՛ս, թե ինչ գույն կստացվի։",
+        ru: "Выбери две краски и посмотри, какой получится цвет!"
+      },
+      askFree3: {
+        en: "Pick 2 or 3 paints and press Mix!",
+        hy: "Ընտրի՛ր 2 կամ 3 ներկ և սեղմի՛ր «Խառնել»։",
+        ru: "Выбери 2 или 3 краски и нажми «Смешать»!"
+      },
+      target: { en: "Make this:", hy: "Պատրաստի՛ր․", ru: "Сделай так:" },
+      need: { en: "{n} paints", hy: "{n} ներկ", ru: "{n} краски" },
+      mix: { en: "Mix!", hy: "Խառնել", ru: "Смешать!" },
+      empty: { en: "Empty the bowl", hy: "Դատարկել ամանը", ru: "Очистить миску" },
+      paint: { en: "{c} paint", hy: "{c} ներկ", ru: "Краска: {c}" },
+      newColour: { en: "a brand-new colour", hy: "բոլորովին նոր գույն", ru: "совсем новый цвет" },
+      noName: {
+        en: "It has no simple name!",
+        hy: "Այն պարզ անուն չունի։",
+        ru: "У него нет простого названия!"
+      },
+      wrong: {
+        en: "You made {x}, but we need {y}. Try again!",
+        hy: "Ստացվեց {x}, իսկ պետք է {y}։ Նորից փորձի՛ր։",
+        ru: "Получился {x}, а нужен {y}. Попробуй ещё!"
+      },
+      hint: {
+        en: "Hint: try the paints that are jumping!",
+        hy: "Հուշում․ փորձի՛ր ցատկոտող ներկերը։",
+        ru: "Подсказка: попробуй прыгающие краски!"
+      },
+      found: { en: "A new colour for your palette! 🎉", hy: "Նոր գույն քո ներկապնակում։ 🎉", ru: "Новый цвет в твоей палитре! 🎉" },
+      book: { en: "My palette", hy: "Իմ ներկապնակը", ru: "Моя палитра" },
+      bookDone: { en: "You found every colour! 🏆", hy: "Դու գտար բոլոր գույները։ 🏆", ru: "Все цвета найдены! 🏆" },
+      praise: {
+        en: ["Great job!", "Super!", "You got it!", "Awesome!", "Well done!", "Brilliant!"],
+        hy: ["Ապրե՛ս։", "Կեցցե՛ս։", "Ճիշտ է։", "Հրաշալի է։", "Շատ լավ։", "Սուպեր։"],
+        ru: ["Молодец!", "Отлично!", "Правильно!", "Супер!", "Умница!", "Здорово!"]
+      },
+      end3: { en: "Amazing work!", hy: "Հրաշալի՜ է", ru: "Потрясающе!" },
+      end2: { en: "Great mixing!", hy: "Լավ խառնեցիր։", ru: "Отлично смешиваешь!" },
+      end1: {
+        en: "Good try — practice makes perfect!",
+        hy: "Լավ փորձ էր․ մարզվի՛ր, և ամեն ինչ կստացվի։",
+        ru: "Хорошая попытка — тренируйся, и всё получится!"
+      },
+      endScore: {
+        en: "You made <b>{n}</b> of {r} colours on the first try.",
+        hy: "Առաջին փորձից ստացվեց <b>{n}</b> գույն {r}-ից։",
+        ru: "С первой попытки: <b>{n}</b> из {r} цветов."
+      },
+      stars: { en: "{n} out of 3 stars", hy: "{n} աստղ 3-ից", ru: "{n} из 3 звёзд" },
+      nextLevel: { en: "Try {l} level", hy: "Փորձի՛ր «{l}» մակարդակը", ru: "Попробуй уровень «{l}»" },
+      again: { en: "Play again", hy: "Նորից խաղալ", ru: "Играть снова" },
+      more: { en: "More games", hy: "Այլ խաղեր", ru: "Другие игры" }
+    };
+
+    /* ---------- Helpers ---------- */
+    function t(key) { return S.tr(UI[key]); }
+    function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
+    function shuffle(list) {
+      var a = list.slice();
+      for (var i = a.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+      }
+      return a;
+    }
+    function esc(s) {
+      return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+    function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+    function fill(text, map) {
+      return text.replace(/\{(\w)\}/g, function (m, k) { return map[k] != null ? map[k] : m; });
+    }
+
+    function keyOf(paints) {
+      return paints.slice().sort(function (a, b) { return PAINT_ORDER.indexOf(a) - PAINT_ORDER.indexOf(b); }).join("+");
+    }
+    var MIXES = {};
+    RECIPES.forEach(function (r) {
+      MIXES[keyOf(r[0])] = { id: r[1], hex: r[1] ? COLORS[r[1]].hex : r[2], paints: r[0] };
+    });
+    function mixOf(paints) {
+      if (paints.length === 1) return { id: null, hex: PAINTS[paints[0]].hex, single: true };
+      return MIXES[keyOf(paints)] || { id: null, hex: "#8B8478" };
+    }
+    function recipesFor(id, cfg) {
+      return RECIPES.filter(function (r) {
+        return r[1] === id && r[0].length <= cfg.bowl && r[0].every(function (p) { return cfg.paints.indexOf(p) !== -1; });
+      }).map(function (r) { return r[0]; });
+    }
+    /** Every named colour that can be made with this level's pots and bowl. */
+    function reachable(cfg) {
+      return COLOR_ORDER.filter(function (id) { return recipesFor(id, cfg).length > 0; });
+    }
+
+    function paintName(p) { return S.tr(PAINTS[p].name); }
+    function colourName(id) { return id ? S.tr(COLORS[id].name) : t("newColour"); }
+    function isLight(hex) { return hex === "#FFFFFF" || hex === "#FFF09A"; }
+    function equation(paints, res) {
+      return cap(paints.map(paintName).join(" + ") + " = " + colourName(res.id)) +
+        (S.get("lang") === "hy" ? "։" : "!");
+    }
+
+    /* Found colours (free mixing palette) are remembered in the browser. */
+    var FOUND_KEY = "playlearn-" + GAME_ID + "-found";
+    var MODE_KEY = "playlearn-" + GAME_ID + "-mode";
+    var memory = {};
+    function store(key, value) {
+      memory[key] = value;
+      try { window.localStorage.setItem(key, value); } catch (e) { /* private mode */ }
+    }
+    function load(key) {
+      try { var v = window.localStorage.getItem(key); if (v != null) return v; } catch (e) { /* ignore */ }
+      return memory[key] != null ? memory[key] : null;
+    }
+    function loadFound() {
+      try { var a = JSON.parse(load(FOUND_KEY) || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+    }
+
+    /* ---------- Read-aloud ---------- */
+    var canSpeak = "speechSynthesis" in window;
+    function voiceFor(lang) {
+      if (!canSpeak) return null;
+      var code = S.langInfo(lang).speech.toLowerCase();
+      var voices = window.speechSynthesis.getVoices() || [];
+      var exact = voices.filter(function (v) { return v.lang && v.lang.toLowerCase().replace("_", "-") === code; })[0];
+      return exact || voices.filter(function (v) { return v.lang && v.lang.toLowerCase().indexOf(code.slice(0, 2)) === 0; })[0] || null;
+    }
+    function canSpeakLang(lang) { return canSpeak && (lang === "en" || !!voiceFor(lang)); }
+    function speak(text) {
+      if (!canSpeak || !text) return;
+      var lang = S.get("lang");
+      window.speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang = S.langInfo(lang).speech;
+      var v = voiceFor(lang);
+      if (v) u.voice = v;
+      u.rate = 0.9;
+      window.speechSynthesis.speak(u);
+    }
+
+    /* ---------- Page ---------- */
+    var catalog = window.LEARNING_GAMES || { themes: [], games: [] };
+    var game = catalog.games.filter(function (g) { return g.id === GAME_ID; })[0] ||
+      { title: "Color Mixer", icon: "🎨", theme: "" };
+    var theme = catalog.themes.filter(function (th) { return th.id === game.theme; })[0] ||
+      { color: "#EC4C8A", soft: "#FDE8F0" };
+    var home = "../../index.html" + (game.theme ? "#" + game.theme : "");
+    var root = document.getElementById("game");
+    document.documentElement.style.setProperty("--c", theme.color);
+    document.documentElement.style.setProperty("--soft", theme.soft);
+
+    var lang, level, cfg, state, els = {};
+    var mode = load(MODE_KEY) === "free" ? "free" : "game";
+    var found = loadFound();
+    var timers = [];
+
+    function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+    function stopAll() {
+      timers.forEach(clearTimeout);
+      timers = [];
+      if (canSpeak) window.speechSynthesis.cancel();
+    }
+
+    function seg(attr, items, current) {
+      return '<div class="g-seg" role="group">' + items.map(function (it) {
+        var on = String(it.value) === String(current);
+        return '<button type="button" class="g-seg__btn' + (on ? " is-active" : "") + '" data-' + attr + '="' + it.value + '"' +
+          ' aria-pressed="' + on + '"' + (it.lang ? ' lang="' + it.lang + '"' : "") + ">" + it.label + "</button>";
+      }).join("") + "</div>";
+    }
+
+    function build(keepGame) {
+      stopAll();
+      lang = S.get("lang");
+      level = S.getLevel(GAME_ID);
+      cfg = LEVEL_CFG[level];
+      var levelInfo = S.LEVELS.filter(function (l) { return l.id === level; })[0];
+      var title = S.tr(game.title);
+      document.documentElement.lang = lang;
+      document.title = title + " · Play & Learn";
+
+      root.innerHTML =
+        '<header class="g-top">' +
+          '<a class="g-back" href="' + home + '">' +
+            '<span aria-hidden="true">←</span> <span class="g-back__label">' + esc(t("allGames")) + "</span></a>" +
+          '<div class="g-title"><span aria-hidden="true">' + game.icon + "</span> " + esc(title) + "</div>" +
+          '<div class="g-right">' +
+            '<button class="g-gear" type="button" id="g-gear" aria-expanded="false" aria-controls="g-panel" title="' + esc(t("settings")) + '">' +
+              '<span aria-hidden="true">⚙️</span><span class="g-gear__lang">' + esc(S.langInfo(lang).label) + "</span>" +
+              '<span class="g-gear__level">' + levelInfo.icon + '<span class="g-gear__lvname"> ' + esc(S.tr(levelInfo.name)) + "</span></span>" +
+            "</button>" +
+            '<div class="g-score" id="g-scorebox" aria-label="' + esc(t("score")) + '"><span aria-hidden="true">⭐</span> <b id="g-score">0</b></div>' +
+          "</div>" +
+          '<div class="g-panel" id="g-panel" hidden>' +
+            '<div class="g-panel__row"><span class="g-panel__label">🌐 ' + esc(t("language")) + "</span>" +
+              seg("lang", S.LANGS.map(function (l) { return { value: l.id, label: esc(l.label), lang: l.id }; }), lang) +
+            "</div>" +
+            '<div class="g-panel__row"><span class="g-panel__label">🎯 ' + esc(t("level")) + "</span>" +
+              seg("level", S.LEVELS.map(function (l) {
+                return { value: l.id, label: l.icon + "&nbsp;" + esc(S.tr(l.name)) };
+              }), level) +
+            "</div>" +
+            '<p class="g-panel__note">' + esc(t("levelNote")) + "</p>" +
+          "</div>" +
+        "</header>" +
+        '<div class="g-progress" id="g-progress" role="progressbar" aria-valuemin="0" aria-valuemax="' + ROUNDS + '">' +
+          '<div class="g-progress__bar" id="g-bar"></div></div>' +
+        '<main class="g-stage"><div class="g-card" id="g-card"></div></main>';
+
+      els.card = document.getElementById("g-card");
+      els.panel = document.getElementById("g-panel");
+      els.gear = document.getElementById("g-gear");
+      els.score = document.getElementById("g-score");
+      els.scorebox = document.getElementById("g-scorebox");
+      els.bar = document.getElementById("g-bar");
+      els.progress = document.getElementById("g-progress");
+
+      els.gear.addEventListener("click", function (e) { e.stopPropagation(); togglePanel(els.panel.hidden); });
+      els.panel.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var btn = e.target.closest("[data-lang],[data-level]");
+        if (!btn) return;
+        if (btn.hasAttribute("data-lang")) {
+          // Language only changes the words — keep score and round.
+          S.set("lang", btn.getAttribute("data-lang"));
+          build(true);
+        } else {
+          S.setLevel(GAME_ID, btn.getAttribute("data-level"));
+          build(false);
+        }
+        togglePanel(true);
+      });
+
+      if (!keepGame || !state || state.level !== level) newGame();
+      else { state.bowl = []; state.busy = false; state.mixed = false; render(); }
+    }
+
+    function togglePanel(open) {
+      if (!els.panel) return;
+      els.panel.hidden = !open;
+      els.gear.setAttribute("aria-expanded", String(open));
+    }
+    document.addEventListener("click", function () { togglePanel(false); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") togglePanel(false); });
+
+    /* ---------- Game state ---------- */
+    function newGame() {
+      stopAll();
+      state = {
+        level: level,
+        round: 0,
+        score: 0,
+        deck: [],
+        target: null,
+        tries: 0,
+        bowl: [],
+        busy: false,
+        mixed: false,
+        done: false,
+        lastFree: null
+      };
+      nextTarget();
+      render();
+    }
+
+    function nextTarget() {
+      if (!state.deck.length) {
+        state.deck = shuffle(cfg.targets);
+        // never the same colour twice in a row
+        if (state.deck[0] === state.target && state.deck.length > 1) state.deck.push(state.deck.shift());
+      }
+      state.target = state.deck.shift();
+      state.tries = 0;
+      state.bowl = [];
+      state.mixed = false;
+      state.busy = false;
+    }
+
+    function setProgress(n) {
+      els.bar.style.width = (n / ROUNDS * 100) + "%";
+      els.progress.setAttribute("aria-valuenow", n);
+    }
+
+    /* ---------- Render ---------- */
+    function render() {
+      var isGame = mode === "game";
+      els.scorebox.hidden = !isGame;
+      els.progress.hidden = !isGame;
+      els.score.textContent = state.score;
+      setProgress(state.round);
+
+      if (isGame && state.done) return renderEnd();
+
+      var tabs =
+        '<div class="cm-tabs" role="group">' +
+          '<button type="button" class="cm-tab' + (isGame ? " is-active" : "") + '" data-mode="game" aria-pressed="' + isGame + '">🎯 ' + esc(t("modeGame")) + "</button>" +
+          '<button type="button" class="cm-tab' + (!isGame ? " is-active" : "") + '" data-mode="free" aria-pressed="' + !isGame + '">🧪 ' + esc(t("modeFree")) + "</button>" +
+        "</div>";
+
+      var target = "";
+      if (isGame) {
+        var col = COLORS[state.target];
+        var need = recipesFor(state.target, cfg)[0].length;
+        target =
+          '<div class="cm-target">' +
+            '<span class="cm-target__label">' + esc(t("target")) + "</span>" +
+            '<div class="cm-splat' + (isLight(col.hex) ? " is-light" : "") + '" style="--col:' + col.hex + '"></div>' +
+            '<span class="cm-target__name">' + esc(cap(colourName(state.target))) + "</span>" +
+            (cfg.bowl > 2 ? '<span class="cm-target__need">🎨 ' + esc(fill(t("need"), { n: need })) + "</span>" : "") +
+          "</div>";
+      }
+
+      els.card.innerHTML =
+        tabs +
+        '<div class="g-prompt">' +
+          '<h1 class="g-question" id="cm-q">' + esc(questionText()) + "</h1>" +
+          (canSpeak ? '<button class="g-say" type="button" aria-label="' + esc(t("readAloud")) + '"' +
+            (canSpeakLang(lang) ? "" : " hidden") + ">🔊</button>" : "") +
+        "</div>" +
+        '<div class="cm-lab">' + target +
+          '<div class="cm-bowlwrap" id="cm-bowlwrap">' +
+            '<div class="cm-bowl" id="cm-bowl"><div class="cm-paint" id="cm-paint"><div class="cm-swirl"></div><div class="cm-result"></div></div></div>' +
+            '<span class="cm-spoon" aria-hidden="true">🥄</span>' +
+          "</div>" +
+        "</div>" +
+        '<div class="cm-eq" id="cm-eq" aria-hidden="true"></div>' +
+        '<div class="cm-pots" style="--n:' + cfg.paints.length + '">' +
+          cfg.paints.map(function (p) {
+            var paint = PAINTS[p];
+            return '<button type="button" class="cm-pot" data-paint="' + p + '" aria-label="' + esc(fill(t("paint"), { c: paintName(p) })) + '">' +
+              '<span class="cm-pot__blob' + (paint.light ? " is-light" : "") + '" style="--col:' + paint.hex + '"></span>' +
+              '<span class="cm-pot__name">' + esc(cap(paintName(p))) + "</span></button>";
+          }).join("") +
+        "</div>" +
+        '<div class="cm-actions">' +
+          '<button type="button" class="g-btn" id="cm-empty">🧽 ' + esc(t("empty")) + "</button>" +
+          (cfg.bowl > 2 ? '<button type="button" class="g-btn g-btn--primary" id="cm-mix">🥄 ' + esc(t("mix")) + "</button>" : "") +
+        "</div>" +
+        '<p class="g-feedback" id="cm-fb" aria-live="polite">&nbsp;</p>' +
+        (isGame ? "" : '<div class="cm-book" id="cm-book"></div>');
+
+      els.bowlwrap = document.getElementById("cm-bowlwrap");
+      els.bowl = document.getElementById("cm-bowl");
+      els.paint = document.getElementById("cm-paint");
+      els.eq = document.getElementById("cm-eq");
+      els.fb = document.getElementById("cm-fb");
+      els.mix = document.getElementById("cm-mix");
+      els.empty = document.getElementById("cm-empty");
+      els.pots = [].slice.call(els.card.querySelectorAll(".cm-pot"));
+
+      els.card.querySelectorAll("[data-mode]").forEach(function (b) {
+        b.addEventListener("click", function () { setMode(b.getAttribute("data-mode")); });
+      });
+      var say = els.card.querySelector(".g-say");
+      if (say) say.addEventListener("click", function () {
+        speak(state.lastSay || questionText());
+      });
+      els.pots.forEach(function (b) {
+        b.addEventListener("click", function () { addPaint(b.getAttribute("data-paint")); });
+      });
+      els.empty.addEventListener("click", function () { if (!state.busy) emptyBowl(); });
+      if (els.mix) els.mix.addEventListener("click", function () { if (!state.busy && state.bowl.length >= 2) mix(); });
+
+      state.lastSay = null;
+      if (!isGame) renderBook();
+      updateBowl();
+      if (isGame && state.tries >= 2) showHint();
+    }
+
+    function questionText() {
+      if (mode === "game") return fill(t("askMake"), { c: colourName(state.target) });
+      return t(cfg.bowl > 2 ? "askFree3" : "askFree2");
+    }
+
+    function setMode(m) {
+      if (m === mode) return;
+      mode = m;
+      store(MODE_KEY, m);
+      stopAll();
+      state.bowl = [];
+      state.busy = false;
+      state.mixed = false;
+      render();
+    }
+
+    /* ---------- Bowl ---------- */
+    function swirlFor(paints) {
+      var cols = paints.map(function (p) { return PAINTS[p].hex; });
+      if (cols.length === 1) return cols[0];
+      var stops = [], n = cols.length * 2, step = 100 / n;
+      for (var i = 0; i < n; i++) stops.push(cols[i % cols.length] + " " + (i * step).toFixed(2) + "% " + ((i + 1) * step).toFixed(2) + "%");
+      return "conic-gradient(" + stops.join(", ") + ")";
+    }
+
+    function dot(hex, name) {
+      return '<span class="cm-chip"><span class="cm-chip__dot' + (isLight(hex) ? " is-light" : "") + '" style="--col:' + hex + '"></span>' + esc(name) + "</span>";
+    }
+
+    function updateBowl(result) {
+      var n = state.bowl.length;
+      var heights = [0, 38, 62, 80];
+      els.paint.style.height = heights[n] + "%";
+      if (!state.mixed) {
+        els.paint.style.setProperty("--swirl", n ? swirlFor(state.bowl) : "transparent");
+        els.bowl.classList.remove("is-mixed", "is-mixing", "is-right");
+      }
+
+      // Equation: chips for poured paints, dashed slots for the empty places, then = ?
+      var parts = state.bowl.map(function (p) { return dot(PAINTS[p].hex, cap(paintName(p))); });
+      var slots = Math.max(2, n);
+      if (!state.mixed) {
+        for (var i = n; i < cfg.bowl; i++) {
+          parts.push('<span class="cm-slot' + (i >= slots ? " cm-slot--opt" : "") + '"></span>');
+        }
+      }
+      var html = parts.join('<span aria-hidden="true">+</span>');
+      html += '<span aria-hidden="true">=</span>';
+      html += result
+        ? dot(result.hex, cap(colourName(result.id))).replace("cm-chip", "cm-chip cm-chip--result")
+        : '<span class="cm-q">?</span>';
+      els.eq.innerHTML = html;
+
+      els.pots.forEach(function (b) {
+        var p = b.getAttribute("data-paint");
+        var used = state.bowl.indexOf(p) !== -1 && !state.mixed;
+        b.classList.toggle("is-used", used);
+        b.disabled = state.busy || used;
+      });
+      if (els.mix) els.mix.disabled = state.busy || state.mixed || n < 2;
+      els.empty.disabled = state.busy || n === 0;
+    }
+
+    function addPaint(p) {
+      if (state.busy) return;
+      if (state.mixed) { state.bowl = []; state.mixed = false; feedback("", ""); }
+      if (state.bowl.indexOf(p) !== -1 || state.bowl.length >= cfg.bowl) return;
+
+      // A drop falls from above into the bowl.
+      var drop = document.createElement("span");
+      drop.className = "cm-drop" + (PAINTS[p].light ? " is-light" : "");
+      drop.style.setProperty("--col", PAINTS[p].hex);
+      drop.style.left = (50 + (Math.random() * 24 - 12)) + "%";
+      els.bowlwrap.appendChild(drop);
+      setTimeout(function () { if (drop.parentNode) drop.parentNode.removeChild(drop); }, 600);
+
+      state.bowl.push(p);
+      if (mode === "game" && state.bowl.length === 1) feedback("", "");
+      updateBowl();
+
+      // A full bowl mixes by itself.
+      if (state.bowl.length >= cfg.bowl) {
+        state.busy = true;
+        updateBowl();
+        later(mix, 450);
+      }
+    }
+
+    function emptyBowl() {
+      state.bowl = [];
+      state.mixed = false;
+      feedback("", "");
+      updateBowl();
+    }
+
+    function feedback(text, cls) {
+      els.fb.className = "g-feedback" + (cls ? " " + cls : "");
+      els.fb.textContent = text || " ";
+    }
+
+    function mix() {
+      var paints = state.bowl.slice();
+      var res = mixOf(paints);
+      state.busy = true;
+      updateBowl();
+      els.bowl.classList.add("is-mixing");
+      els.bowlwrap.classList.add("is-mixing");
+      els.paint.style.setProperty("--res", res.hex);
+
+      later(function () {
+        els.bowl.classList.add("is-mixed");
+      }, 650);
+
+      later(function () {
+        els.bowl.classList.remove("is-mixing");
+        els.bowlwrap.classList.remove("is-mixing");
+        state.mixed = true;
+        if (mode === "game") checkAnswer(paints, res);
+        else showFree(paints, res);
+      }, 1150);
+    }
+
+    function checkAnswer(paints, res) {
+      var eq = equation(paints, res);
+      if (res.id === state.target) {
+        if (state.tries === 0) { state.score++; els.score.textContent = state.score; }
+        state.round++;
+        setProgress(state.round);
+        els.bowl.classList.add("is-right");
+        updateBowl(res);
+        els.pots.forEach(function (b) { b.disabled = true; b.classList.remove("is-hint"); });
+        feedback(pick(t("praise")) + " " + eq, "is-right");
+        state.lastSay = eq;
+        markFound(res.id);
+        later(function () {
+          if (state.round >= ROUNDS) { state.done = true; render(); return; }
+          nextTarget();
+          render();
+        }, 2300);
+      } else {
+        state.tries++;
+        updateBowl(res);
+        els.pots.forEach(function (b) { b.disabled = true; });
+        var msg = fill(t("wrong"), { x: colourName(res.id), y: colourName(state.target) });
+        feedback(msg, "is-wrong");
+        state.lastSay = msg;
+        if (res.id) markFound(res.id);
+        later(function () {
+          state.busy = false;
+          state.mixed = false;
+          state.bowl = [];
+          updateBowl();
+          if (state.tries >= 2) {
+            showHint();
+            feedback(t("hint"), "is-timeup");
+          }
+        }, 2200);
+      }
+    }
+
+    function showHint() {
+      var recipe = recipesFor(state.target, cfg)[0];
+      els.pots.forEach(function (b) {
+        b.classList.toggle("is-hint", recipe.indexOf(b.getAttribute("data-paint")) !== -1);
+      });
+    }
+
+    function showFree(paints, res) {
+      state.busy = false;
+      updateBowl(res);
+      var eq = equation(paints, res);
+      var isNew = res.id && markFound(res.id);
+      var text = eq + (res.id ? "" : " " + t("noName")) + (isNew ? " " + t("found") : "");
+      feedback(text, res.id ? "is-right" : "");
+      state.lastSay = eq;
+      renderBook(isNew ? res.id : null);
+    }
+
+    function markFound(id) {
+      if (!id || found.indexOf(id) !== -1) return false;
+      found.push(id);
+      store(FOUND_KEY, JSON.stringify(found));
+      return true;
+    }
+
+    /* ---------- Free-mixing palette ---------- */
+    function renderBook(newId) {
+      var box = document.getElementById("cm-book");
+      if (!box) return;
+      var list = reachable(cfg);
+      var have = list.filter(function (id) { return found.indexOf(id) !== -1; }).length;
+      box.innerHTML =
+        '<h2 class="cm-book__title">🎨 ' + esc(t("book")) + " <b>" + have + " / " + list.length + "</b>" +
+          (have === list.length ? "<br>" + esc(t("bookDone")) : "") + "</h2>" +
+        '<div class="cm-book__grid">' + list.map(function (id) {
+          var on = found.indexOf(id) !== -1;
+          var col = COLORS[id];
+          return '<button type="button" class="cm-swatch' + (id === newId ? " is-new" : "") + '" data-color="' + id + '"' + (on ? "" : " disabled") + ">" +
+            '<span class="cm-swatch__dot' + (on && isLight(col.hex) ? " is-light" : "") + '"' + (on ? ' style="--col:' + col.hex + '"' : "") + ">" + (on ? "" : "?") + "</span>" +
+            (on ? esc(cap(colourName(id))) : "&nbsp;") + "</button>";
+        }).join("") + "</div>";
+
+      // Tap a colour you found to see its recipe again.
+      box.querySelectorAll(".cm-swatch:not(:disabled)").forEach(function (b) {
+        b.addEventListener("click", function () {
+          if (state.busy) return;
+          var id = b.getAttribute("data-color");
+          var recipe = recipesFor(id, cfg)[0];
+          var res = { id: id, hex: COLORS[id].hex };
+          state.bowl = recipe.slice();
+          state.mixed = true;
+          els.paint.style.setProperty("--swirl", swirlFor(recipe));
+          els.paint.style.setProperty("--res", res.hex);
+          els.bowl.classList.add("is-mixed");
+          updateBowl(res);
+          var eq = equation(recipe, res);
+          feedback(eq, "is-right");
+          state.lastSay = eq;
+        });
+      });
+    }
+
+    /* ---------- End screen ---------- */
+    function renderEnd() {
+      var ratio = state.score / ROUNDS;
+      var stars = ratio >= 0.9 ? 3 : ratio >= 0.6 ? 2 : 1;
+      var idx = S.LEVELS.map(function (l) { return l.id; }).indexOf(level);
+      var next = stars === 3 ? S.LEVELS[idx + 1] : null;
+
+      els.card.innerHTML =
+        '<div class="g-end">' +
+          '<div class="g-stars" aria-label="' + esc(fill(t("stars"), { n: stars })) + '">' +
+            [1, 2, 3].map(function (i) {
+              return '<span class="g-star' + (i <= stars ? " is-on" : "") + '" style="animation-delay:' + (i * 0.15) + 's">★</span>';
+            }).join("") +
+          "</div>" +
+          '<h1 class="g-end__title">' + esc(t("end" + stars)) + "</h1>" +
+          '<p class="g-end__score">' + fill(t("endScore"), { n: state.score, r: ROUNDS }) + "</p>" +
+          '<div class="g-end__actions">' +
+            (next ? '<button class="g-btn g-btn--primary" type="button" id="cm-next">' + next.icon + " " +
+              esc(fill(t("nextLevel"), { l: S.tr(next.name) })) + "</button>" : "") +
+            '<button class="g-btn' + (next ? "" : " g-btn--primary") + '" type="button" id="cm-again">' + esc(t("again")) + "</button>" +
+            '<button class="g-btn" type="button" id="cm-free">🧪 ' + esc(t("modeFree")) + "</button>" +
+            '<a class="g-btn" href="' + home + '">' + esc(t("more")) + "</a>" +
+          "</div>" +
+        "</div>";
+
+      document.getElementById("cm-again").addEventListener("click", newGame);
+      document.getElementById("cm-free").addEventListener("click", function () { newGame(); setMode("free"); });
+      if (next) document.getElementById("cm-next").addEventListener("click", function () {
+        S.setLevel(GAME_ID, next.id);
+        build(false);
+      });
+    }
+
+    // Voices load a moment after the page; show 🔊 once a voice for the language appears.
+    if (canSpeak && "onvoiceschanged" in window.speechSynthesis) {
+      window.speechSynthesis.addEventListener("voiceschanged", function () {
+        var say = els.card && els.card.querySelector(".g-say");
+        if (say) say.hidden = !canSpeakLang(lang);
+      });
+    }
+
+    build(false);
+  })();
+  </script>
+</body>
+</html>
