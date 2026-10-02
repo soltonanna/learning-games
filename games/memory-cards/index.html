@@ -1,0 +1,883 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Card Memory · Play &amp; Learn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700;800&family=Noto+Sans+Armenian:wght@500;600;700;800&display=swap">
+  <link rel="stylesheet" href="../shared/game.css">
+  <style>
+    :root {
+      --p1: #12A594;   /* player 1 colour (2-player mode) */
+      --p2: #FF7A30;   /* player 2 colour (2-player mode) */
+    }
+
+    .mm-rules {
+      margin: 6px 0 0;
+      color: var(--ink-soft);
+      font-weight: 600;
+      font-size: 16px;
+      text-align: center;
+    }
+
+    /* ---------- Stats row ---------- */
+    .mm-stats {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 14px 0 0;
+    }
+    .mm-stat {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 3px solid var(--line);
+      background: #fff;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 17px;
+      line-height: 1.2;
+      transition: border-color .2s ease, background .2s ease, transform .2s ease;
+    }
+    .mm-stat b { font-weight: 800; font-variant-numeric: tabular-nums; }
+    .mm-stat--set { background: var(--soft); border-color: transparent; }
+    .mm-stat--p1 b { color: var(--p1); }
+    .mm-stat--p2 b { color: var(--p2); }
+    .mm-stat--p1.is-turn { border-color: var(--p1); background: color-mix(in srgb, var(--p1) 12%, #fff); transform: translateY(-3px); }
+    .mm-stat--p2.is-turn { border-color: var(--p2); background: color-mix(in srgb, var(--p2) 12%, #fff); transform: translateY(-3px); }
+
+    /* ---------- Board ---------- */
+    .mm-board {
+      --gap: clamp(6px, 1.6vw, 12px);
+      display: grid;
+      grid-template-columns: repeat(var(--cols), 1fr);
+      gap: var(--gap);
+      /* As wide as allowed, but short enough that the whole board fits on screen. */
+      width: min(var(--maxw), 100%, max(270px, calc((100vh - 330px) * var(--cols) / var(--rows))));
+      width: min(var(--maxw), 100%, max(270px, calc((100dvh - 330px) * var(--cols) / var(--rows))));
+      margin: 14px auto 0;
+      padding: var(--gap);
+      border-radius: 24px;
+      background: var(--soft);
+      container-type: inline-size;
+      touch-action: manipulation;
+    }
+
+    .mm-card {
+      position: relative;
+      aspect-ratio: 1;
+      min-width: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      perspective: 700px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mm-card:focus-visible { outline: 4px solid var(--c); outline-offset: 3px; border-radius: 16px; }
+    .mm-card:disabled { cursor: default; }
+
+    .mm-inner {
+      position: absolute;
+      inset: 0;
+      transform-style: preserve-3d;
+      transition: transform .45s cubic-bezier(.3, 1.3, .5, 1);
+    }
+    .mm-card.is-open .mm-inner,
+    .mm-card.is-matched .mm-inner { transform: rotateY(180deg); }
+
+    .mm-face {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      border-radius: clamp(10px, 2.4cqw, 18px);
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      overflow: hidden;
+    }
+
+    /* Back of the card (what you see before flipping) */
+    .mm-face--back {
+      background:
+        radial-gradient(circle at 25% 25%, rgba(255, 255, 255, .22) 0 9%, transparent 10%),
+        radial-gradient(circle at 75% 75%, rgba(255, 255, 255, .22) 0 9%, transparent 10%),
+        var(--c);
+      background-size: 50% 50%, 50% 50%, auto;
+      border-bottom: 5px solid color-mix(in srgb, var(--c) 70%, #000);
+      color: #fff;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 34px;
+      font-size: calc(100cqw / var(--cols) * .42);
+      line-height: 1;
+      text-shadow: 0 2px 0 rgba(0, 0, 0, .15);
+      transition: transform .12s ease, filter .12s ease;
+    }
+    @media (hover: hover) {
+      .mm-card:not(:disabled):not(.is-open):hover .mm-face--back { transform: translateY(-3px); filter: brightness(1.07); }
+    }
+
+    /* Front of the card (the picture) */
+    .mm-face--front {
+      transform: rotateY(180deg);
+      background: #fff;
+      border: 3px solid var(--line);
+      border-bottom-width: 5px;
+      font-size: 36px;
+      font-size: calc(100cqw / var(--cols) * .52);
+      line-height: 1;
+    }
+    .mm-num {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 1.05em;
+      line-height: 1;
+      transform: translateY(.06em);
+    }
+
+    .mm-card.is-matched .mm-face--front {
+      border-color: var(--right);
+      background: #E8F8F0;
+      animation: mm-match .55s ease both;
+    }
+    .mm-card.is-matched.by-p1 .mm-face--front { border-color: var(--p1); background: color-mix(in srgb, var(--p1) 14%, #fff); }
+    .mm-card.is-matched.by-p2 .mm-face--front { border-color: var(--p2); background: color-mix(in srgb, var(--p2) 14%, #fff); }
+    .mm-card.is-miss { animation: g-shake .4s ease; }   /* shake the whole card — not the face, so the flip stays intact */
+    .mm-card.is-miss .mm-face--front { border-color: var(--wrong); }
+    @keyframes mm-match { 40% { transform: rotateY(180deg) scale(1.12); } }
+
+    .mm-board.is-done .mm-card .mm-face--front { animation: mm-wave .6s ease both; animation-delay: var(--d, 0s); }
+    @keyframes mm-wave { 50% { transform: rotateY(180deg) translateY(-8px) scale(1.06); } }
+
+    .mm-tools {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .mm-tool {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 48px;
+      padding: 6px 18px;
+      border-radius: 999px;
+      border: 3px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 17px;
+      cursor: pointer;
+    }
+    .mm-tool:hover { border-color: var(--c); }
+
+    /* Picture-set picker in ⚙️ — wraps onto several lines */
+    .mm-sets { flex-wrap: wrap; border-radius: 22px; }
+    .mm-sets .g-seg__btn { flex: 1 1 30%; }
+    .mm-lv small { display: block; font-size: 12px; font-weight: 600; opacity: .8; line-height: 1; }
+    .mm-lv { line-height: 1.1; }
+
+    @media (max-width: 600px) {
+      .mm-rules { font-size: 14px; }
+      .mm-stat { font-size: 15px; padding: 5px 11px; }
+      .mm-board { border-radius: 18px; }
+      .mm-tool { font-size: 15px; padding: 6px 14px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .mm-inner { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+
+  <script src="../../js/settings.js"></script>
+  <script src="../../js/games-data.js"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    var S = window.PlaySettings;
+    var GAME_ID = "memory-cards";
+
+    /**
+     * Board size for each level.
+     *   cols × rows must be even (every card has a twin).
+     *   wait  how long (ms) two different cards stay open before turning back
+     *   maxw  widest the board gets on a big screen
+     */
+    var LEVEL_SETUP = {
+      easy:   { cols: 4, rows: 3, wait: 1300, maxw: 460 },   //  6 pairs
+      medium: { cols: 5, rows: 4, wait: 1100, maxw: 540 },   // 10 pairs
+      hard:   { cols: 6, rows: 6, wait: 1000, maxw: 580 }    // 18 pairs
+    };
+
+    /**
+     * PICTURE SETS — every set needs at least 18 items (Hard = 18 pairs).
+     * Each game takes a random handful from the chosen set.
+     *   e  the emoji (or, for numbers, the digits shown on the card)
+     *   n  the name in 3 languages, shown and read aloud when the pair is found
+     */
+    var SETS = {
+      animals: {
+        icon: "🐶", name: { en: "Animals", hy: "Կենդանիներ", ru: "Животные" },
+        items: [
+          { e: "🐶", n: { en: "Dog", hy: "Շուն", ru: "Собака" } },
+          { e: "🐱", n: { en: "Cat", hy: "Կատու", ru: "Кошка" } },
+          { e: "🐭", n: { en: "Mouse", hy: "Մուկ", ru: "Мышка" } },
+          { e: "🐰", n: { en: "Rabbit", hy: "Ճագար", ru: "Кролик" } },
+          { e: "🦊", n: { en: "Fox", hy: "Աղվես", ru: "Лиса" } },
+          { e: "🐻", n: { en: "Bear", hy: "Արջ", ru: "Медведь" } },
+          { e: "🐼", n: { en: "Panda", hy: "Պանդա", ru: "Панда" } },
+          { e: "🐨", n: { en: "Koala", hy: "Կոալա", ru: "Коала" } },
+          { e: "🐯", n: { en: "Tiger", hy: "Վագր", ru: "Тигр" } },
+          { e: "🦁", n: { en: "Lion", hy: "Առյուծ", ru: "Лев" } },
+          { e: "🐮", n: { en: "Cow", hy: "Կով", ru: "Корова" } },
+          { e: "🐷", n: { en: "Pig", hy: "Խոզ", ru: "Свинья" } },
+          { e: "🐸", n: { en: "Frog", hy: "Գորտ", ru: "Лягушка" } },
+          { e: "🐵", n: { en: "Monkey", hy: "Կապիկ", ru: "Обезьяна" } },
+          { e: "🐔", n: { en: "Chicken", hy: "Հավ", ru: "Курица" } },
+          { e: "🐧", n: { en: "Penguin", hy: "Պինգվին", ru: "Пингвин" } },
+          { e: "🦒", n: { en: "Giraffe", hy: "Ընձուղտ", ru: "Жираф" } },
+          { e: "🐘", n: { en: "Elephant", hy: "Փիղ", ru: "Слон" } },
+          { e: "🦓", n: { en: "Zebra", hy: "Զեբր", ru: "Зебра" } },
+          { e: "🐢", n: { en: "Turtle", hy: "Կրիա", ru: "Черепаха" } }
+        ]
+      },
+      food: {
+        icon: "🍎", name: { en: "Food", hy: "Ուտելիք", ru: "Еда" },
+        items: [
+          { e: "🍎", n: { en: "Apple", hy: "Խնձոր", ru: "Яблоко" } },
+          { e: "🍌", n: { en: "Banana", hy: "Բանան", ru: "Банан" } },
+          { e: "🍇", n: { en: "Grapes", hy: "Խաղող", ru: "Виноград" } },
+          { e: "🍓", n: { en: "Strawberry", hy: "Ելակ", ru: "Клубника" } },
+          { e: "🍉", n: { en: "Watermelon", hy: "Ձմերուկ", ru: "Арбуз" } },
+          { e: "🍊", n: { en: "Orange", hy: "Նարինջ", ru: "Апельсин" } },
+          { e: "🍐", n: { en: "Pear", hy: "Տանձ", ru: "Груша" } },
+          { e: "🍒", n: { en: "Cherries", hy: "Կեռաս", ru: "Вишня" } },
+          { e: "🍍", n: { en: "Pineapple", hy: "Արքայախնձոր", ru: "Ананас" } },
+          { e: "🥕", n: { en: "Carrot", hy: "Գազար", ru: "Морковь" } },
+          { e: "🌽", n: { en: "Corn", hy: "Եգիպտացորեն", ru: "Кукуруза" } },
+          { e: "🍅", n: { en: "Tomato", hy: "Լոլիկ", ru: "Помидор" } },
+          { e: "🥒", n: { en: "Cucumber", hy: "Վարունգ", ru: "Огурец" } },
+          { e: "🍞", n: { en: "Bread", hy: "Հաց", ru: "Хлеб" } },
+          { e: "🧀", n: { en: "Cheese", hy: "Պանիր", ru: "Сыр" } },
+          { e: "🍕", n: { en: "Pizza", hy: "Պիցցա", ru: "Пицца" } },
+          { e: "🍦", n: { en: "Ice cream", hy: "Պաղպաղակ", ru: "Мороженое" } },
+          { e: "🍰", n: { en: "Cake", hy: "Տորթ", ru: "Торт" } },
+          { e: "🥚", n: { en: "Egg", hy: "Ձու", ru: "Яйцо" } },
+          { e: "🍪", n: { en: "Cookie", hy: "Թխվածքաբլիթ", ru: "Печенье" } }
+        ]
+      },
+      numbers: {
+        icon: "🔢", name: { en: "Numbers", hy: "Թվեր", ru: "Числа" }, digits: true,
+        items: [
+          { e: "1",  n: { en: "One", hy: "Մեկ", ru: "Один" } },
+          { e: "2",  n: { en: "Two", hy: "Երկու", ru: "Два" } },
+          { e: "3",  n: { en: "Three", hy: "Երեք", ru: "Три" } },
+          { e: "4",  n: { en: "Four", hy: "Չորս", ru: "Четыре" } },
+          { e: "5",  n: { en: "Five", hy: "Հինգ", ru: "Пять" } },
+          { e: "6",  n: { en: "Six", hy: "Վեց", ru: "Шесть" } },
+          { e: "7",  n: { en: "Seven", hy: "Յոթ", ru: "Семь" } },
+          { e: "8",  n: { en: "Eight", hy: "Ութ", ru: "Восемь" } },
+          { e: "9",  n: { en: "Nine", hy: "Ինը", ru: "Девять" } },
+          { e: "10", n: { en: "Ten", hy: "Տասը", ru: "Десять" } },
+          { e: "11", n: { en: "Eleven", hy: "Տասնմեկ", ru: "Одиннадцать" } },
+          { e: "12", n: { en: "Twelve", hy: "Տասներկու", ru: "Двенадцать" } },
+          { e: "13", n: { en: "Thirteen", hy: "Տասներեք", ru: "Тринадцать" } },
+          { e: "14", n: { en: "Fourteen", hy: "Տասնչորս", ru: "Четырнадцать" } },
+          { e: "15", n: { en: "Fifteen", hy: "Տասնհինգ", ru: "Пятнадцать" } },
+          { e: "16", n: { en: "Sixteen", hy: "Տասնվեց", ru: "Шестнадцать" } },
+          { e: "17", n: { en: "Seventeen", hy: "Տասնյոթ", ru: "Семнадцать" } },
+          { e: "18", n: { en: "Eighteen", hy: "Տասնութ", ru: "Восемнадцать" } },
+          { e: "19", n: { en: "Nineteen", hy: "Տասնինը", ru: "Девятнадцать" } },
+          { e: "20", n: { en: "Twenty", hy: "Քսան", ru: "Двадцать" } }
+        ]
+      },
+      transport: {
+        icon: "🚗", name: { en: "Transport", hy: "Տրանսպորտ", ru: "Транспорт" },
+        items: [
+          { e: "🚗", n: { en: "Car", hy: "Մեքենա", ru: "Машина" } },
+          { e: "🚌", n: { en: "Bus", hy: "Ավտոբուս", ru: "Автобус" } },
+          { e: "🚕", n: { en: "Taxi", hy: "Տաքսի", ru: "Такси" } },
+          { e: "🚓", n: { en: "Police car", hy: "Ոստիկանական մեքենա", ru: "Полицейская машина" } },
+          { e: "🚑", n: { en: "Ambulance", hy: "Շտապօգնության մեքենա", ru: "Скорая помощь" } },
+          { e: "🚒", n: { en: "Fire engine", hy: "Հրշեջ մեքենա", ru: "Пожарная машина" } },
+          { e: "🚜", n: { en: "Tractor", hy: "Տրակտոր", ru: "Трактор" } },
+          { e: "🚚", n: { en: "Truck", hy: "Բեռնատար", ru: "Грузовик" } },
+          { e: "🚲", n: { en: "Bicycle", hy: "Հեծանիվ", ru: "Велосипед" } },
+          { e: "🛴", n: { en: "Kick scooter", hy: "Ինքնագլոր", ru: "Самокат" } },
+          { e: "🏍️", n: { en: "Motorbike", hy: "Մոտոցիկլ", ru: "Мотоцикл" } },
+          { e: "🚂", n: { en: "Train", hy: "Գնացք", ru: "Поезд" } },
+          { e: "🚃", n: { en: "Tram", hy: "Տրամվայ", ru: "Трамвай" } },
+          { e: "✈️", n: { en: "Airplane", hy: "Ինքնաթիռ", ru: "Самолёт" } },
+          { e: "🚁", n: { en: "Helicopter", hy: "Ուղղաթիռ", ru: "Вертолёт" } },
+          { e: "🚀", n: { en: "Rocket", hy: "Հրթիռ", ru: "Ракета" } },
+          { e: "⛵", n: { en: "Sailboat", hy: "Առագաստանավ", ru: "Парусник" } },
+          { e: "🚢", n: { en: "Ship", hy: "Նավ", ru: "Корабль" } },
+          { e: "🚠", n: { en: "Cable car", hy: "Ճոպանուղի", ru: "Канатная дорога" } }
+        ]
+      },
+      nature: {
+        icon: "🌈", name: { en: "Nature", hy: "Բնություն", ru: "Природа" },
+        items: [
+          { e: "☀️", n: { en: "Sun", hy: "Արև", ru: "Солнце" } },
+          { e: "🌙", n: { en: "Moon", hy: "Լուսին", ru: "Луна" } },
+          { e: "⭐", n: { en: "Star", hy: "Աստղ", ru: "Звезда" } },
+          { e: "☁️", n: { en: "Cloud", hy: "Ամպ", ru: "Облако" } },
+          { e: "🌈", n: { en: "Rainbow", hy: "Ծիածան", ru: "Радуга" } },
+          { e: "⚡", n: { en: "Lightning", hy: "Կայծակ", ru: "Молния" } },
+          { e: "❄️", n: { en: "Snowflake", hy: "Ձյան փաթիլ", ru: "Снежинка" } },
+          { e: "🌸", n: { en: "Flower", hy: "Ծաղիկ", ru: "Цветок" } },
+          { e: "🌻", n: { en: "Sunflower", hy: "Արևածաղիկ", ru: "Подсолнух" } },
+          { e: "🌳", n: { en: "Tree", hy: "Ծառ", ru: "Дерево" } },
+          { e: "🍄", n: { en: "Mushroom", hy: "Սունկ", ru: "Гриб" } },
+          { e: "🌵", n: { en: "Cactus", hy: "Կակտուս", ru: "Кактус" } },
+          { e: "🍁", n: { en: "Leaf", hy: "Տերև", ru: "Лист" } },
+          { e: "🔥", n: { en: "Fire", hy: "Կրակ", ru: "Огонь" } },
+          { e: "💧", n: { en: "Water drop", hy: "Կաթիլ", ru: "Капля" } },
+          { e: "🌍", n: { en: "Earth", hy: "Երկիր", ru: "Земля" } },
+          { e: "🌋", n: { en: "Volcano", hy: "Հրաբուխ", ru: "Вулкан" } },
+          { e: "🌊", n: { en: "Wave", hy: "Ալիք", ru: "Волна" } }
+        ]
+      }
+    };
+    var SET_IDS = Object.keys(SETS);
+
+    /** Bright colours for the number cards. */
+    var NUM_COLORS = ["#FF7A30", "#12A594", "#7C5CFF", "#EC4C8A", "#169BDB", "#1FAA6B", "#E39A0B", "#F0506E"];
+
+    var UI = {
+      allGames: { en: "All games", hy: "Բոլոր խաղերը", ru: "Все игры" },
+      settings: { en: "Settings", hy: "Կարգավորումներ", ru: "Настройки" },
+      language: { en: "Language", hy: "Լեզու", ru: "Язык" },
+      level:    { en: "Board size", hy: "Խաղադաշտի չափը", ru: "Размер поля" },
+      pictures: { en: "Pictures", hy: "Նկարներ", ru: "Картинки" },
+      random:   { en: "Mix", hy: "Խառը", ru: "Микс" },
+      players:  { en: "Players", hy: "Խաղացողներ", ru: "Игроки" },
+      solo:     { en: "1 player", hy: "1 խաղացող", ru: "1 игрок" },
+      duo:      { en: "2 players", hy: "2 խաղացող", ru: "2 игрока" },
+      sound:    { en: "Say the names", hy: "Ասել անունները", ru: "Называть вслух" },
+      on:       { en: "On", hy: "Միաց.", ru: "Вкл" },
+      off:      { en: "Off", hy: "Անջատ.", ru: "Выкл" },
+      restartNote: {
+        en: "Changing a setting starts a new game.",
+        hy: "Կարգավորումը փոխելիս նոր խաղ կսկսվի։",
+        ru: "После изменения начнётся новая игра."
+      },
+      pairsN: { en: "{n} pairs", hy: "{n} զույգ", ru: "{n} пар" },
+      title: { en: "Find the pairs!", hy: "Գտի՛ր զույգերը։", ru: "Найди пары!" },
+      rules: {
+        en: "Flip two cards. If the pictures are the same, you found a pair! If not, remember where they are.",
+        hy: "Բացի՛ր երկու քարտ։ Եթե նկարները նույնն են, դու գտար զույգը։ Եթե ոչ՝ հիշի՛ր, թե որտեղ են դրանք։",
+        ru: "Открой две карточки. Если картинки одинаковые — ты нашёл пару! Если нет — запомни, где они лежат."
+      },
+      pairs: { en: "Pairs", hy: "Զույգեր", ru: "Пары" },
+      moves: { en: "Moves", hy: "Քայլեր", ru: "Ходы" },
+      player1: { en: "Player 1", hy: "Խաղացող 1", ru: "Игрок 1" },
+      player2: { en: "Player 2", hy: "Խաղացող 2", ru: "Игрок 2" },
+      start: { en: "Tap any card to begin!", hy: "Սեղմի՛ր ցանկացած քարտի վրա՝ սկսելու համար։", ru: "Нажми на любую карточку, чтобы начать!" },
+      startDuo: { en: "{p} starts — tap a card!", hy: "Սկսում է {p}-ը․ սեղմի՛ր քարտի վրա։", ru: "Начинает {p} — нажми на карточку!" },
+      oneMore: { en: "Now find its twin!", hy: "Հիմա գտի՛ր նրա զույգը։", ru: "Теперь найди такую же!" },
+      praise: {
+        en: ["Great!", "Yes!", "Super!", "Well done!", "You found it!"],
+        hy: ["Ապրե՛ս։", "Այո՛։", "Սուպեր։", "Կեցցե՛ս։", "Գտա՛ր։"],
+        ru: ["Отлично!", "Да!", "Супер!", "Молодец!", "Нашёл!"]
+      },
+      miss: {
+        en: ["Not a pair — remember where they are!", "Oops, different pictures. Try again!", "Almost! Remember these two."],
+        hy: ["Զույգ չէ․ հիշի՛ր, թե որտեղ են։", "Վա՜յ, տարբեր նկարներ են։ Նորից փորձի՛ր։", "Գրեթե։ Հիշի՛ր այս երկուսը։"],
+        ru: ["Не пара — запомни, где они!", "Ой, картинки разные. Попробуй ещё!", "Почти! Запомни эти две."]
+      },
+      duoAgain: { en: "{p} goes again!", hy: "{p}-ը նորից է խաղում։", ru: "{p} ходит ещё раз!" },
+      duoTurn: { en: "Now it's {p}'s turn.", hy: "Հիմա {p}-ի հերթն է։", ru: "Теперь ходит {p}." },
+      newGame: { en: "New game", hy: "Նոր խաղ", ru: "Новая игра" },
+      card: { en: "Card {n}", hy: "Քարտ {n}", ru: "Карточка {n}" },
+      end3: { en: "Amazing memory!", hy: "Հիանալի հիշողություն։", ru: "Отличная память!" },
+      end2: { en: "All pairs found!", hy: "Բոլոր զույգերը գտնված են։", ru: "Все пары найдены!" },
+      end1: { en: "You did it!", hy: "Դու կարողացար։", ru: "У тебя получилось!" },
+      endScore: {
+        en: "<b>{p}</b> pairs in <b>{m}</b> moves · time <b>{t}</b>",
+        hy: "<b>{p}</b> զույգ <b>{m}</b> քայլում · ժամանակ՝ <b>{t}</b>",
+        ru: "<b>{p}</b> пар за <b>{m}</b> ходов · время <b>{t}</b>"
+      },
+      duoWin: { en: "{p} wins! 🏆", hy: "Հաղթեց {p}-ը։ 🏆", ru: "Победил {p}! 🏆" },
+      duoDraw: { en: "It's a draw! 🤝", hy: "Ոչ-ոքի։ 🤝", ru: "Ничья! 🤝" },
+      duoScore: {
+        en: "{a}: <b>{x}</b> pairs · {b}: <b>{y}</b> pairs",
+        hy: "{a}՝ <b>{x}</b> զույգ · {b}՝ <b>{y}</b> զույգ",
+        ru: "{a}: <b>{x}</b> · {b}: <b>{y}</b> пар"
+      },
+      stars: { en: "{n} out of 3 stars", hy: "{n} աստղ 3-ից", ru: "{n} из 3 звёзд" },
+      nextLevel: { en: "Bigger board: {l}", hy: "Ավելի մեծ դաշտ՝ {l}", ru: "Поле побольше: {l}" },
+      again: { en: "Play again", hy: "Նորից խաղալ", ru: "Играть снова" },
+      more:  { en: "More games", hy: "Այլ խաղեր", ru: "Другие игры" }
+    };
+    function t(key) { return S.tr(UI[key]); }
+    function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
+    function esc(s) {
+      return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+    function shuffle(list) {
+      var a = list.slice();
+      for (var i = a.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+      }
+      return a;
+    }
+    function fmtTime(sec) {
+      var m = Math.floor(sec / 60), s = sec % 60;
+      return m + ":" + (s < 10 ? "0" : "") + s;
+    }
+
+    /* ---------- Remembered choices (pictures, players, sound) ---------- */
+    var mem = {};
+    function getPref(key, allowed, fallback) {
+      var v;
+      try { v = window.localStorage.getItem("playlearn-memory-" + key); } catch (e) { v = mem[key]; }
+      if (v == null) v = mem[key];
+      return allowed.indexOf(v) !== -1 ? v : fallback;
+    }
+    function setPref(key, v) {
+      mem[key] = v;
+      try { window.localStorage.setItem("playlearn-memory-" + key, v); } catch (e) { /* private mode */ }
+    }
+
+    /* ---------- Read the names aloud ---------- */
+    var canSpeak = "speechSynthesis" in window;
+    function voiceFor(l) {
+      if (!canSpeak) return null;
+      var code = S.langInfo(l).speech.toLowerCase();
+      var prefix = code.split("-")[0];
+      var voices = window.speechSynthesis.getVoices() || [];
+      var exact = voices.filter(function (v) { return v.lang && v.lang.toLowerCase().replace("_", "-") === code; })[0];
+      return exact || voices.filter(function (v) { return v.lang && v.lang.toLowerCase().indexOf(prefix) === 0; })[0] || null;
+    }
+    function speak(text) {
+      // Only speak when there is a real voice for the language (English always works).
+      if (!canSpeak || sound !== "on" || (lang !== "en" && !voiceFor(lang))) return;
+      try {
+        window.speechSynthesis.cancel();
+        var u = new SpeechSynthesisUtterance(text);
+        u.lang = S.langInfo(lang).speech;
+        var v = voiceFor(lang);
+        if (v) u.voice = v;
+        u.rate = 0.9;
+        window.speechSynthesis.speak(u);
+      } catch (e) { /* no speech */ }
+    }
+
+    /* ======================================================================
+       Game
+       ====================================================================== */
+
+    var catalog = window.LEARNING_GAMES || { themes: [], games: [] };
+    var game = catalog.games.filter(function (g) { return g.id === GAME_ID; })[0] ||
+      { title: { en: "Card Memory" }, icon: "🃏", theme: "logic" };
+    var theme = catalog.themes.filter(function (th) { return th.id === game.theme; })[0] ||
+      { color: "#12A594", soft: "#E1F6F3" };
+    var home = "../../index.html" + (game.theme ? "#" + game.theme : "");
+    var root = document.getElementById("game");
+
+    document.documentElement.style.setProperty("--c", theme.color);
+    document.documentElement.style.setProperty("--soft", theme.soft);
+
+    var lang, level, setup, setChoice, players, sound, state, els = {};
+    var hideTimer = null, clockTimer = null, finishTimer = null;
+    var lastSet = null;
+
+    function playerName(p) { return p === 0 ? t("player1") : t("player2"); }
+
+    function seg(attr, items, current, extraClass) {
+      return '<div class="g-seg' + (extraClass ? " " + extraClass : "") + '" role="group">' + items.map(function (it) {
+        var on = String(it.value) === String(current);
+        return '<button type="button" class="g-seg__btn' + (it.cls ? " " + it.cls : "") + (on ? " is-active" : "") +
+          '" data-' + attr + '="' + it.value + '"' + ' aria-pressed="' + on + '"' +
+          (it.lang ? ' lang="' + it.lang + '"' : "") + ">" + it.label + "</button>";
+      }).join("") + "</div>";
+    }
+
+    /* ----- Page shell ----- */
+
+    function build() {
+      lang = S.get("lang");
+      level = S.getLevel(GAME_ID);
+      setup = LEVEL_SETUP[level];
+      setChoice = getPref("set", ["random"].concat(SET_IDS), "random");
+      players = getPref("players", ["1", "2"], "1");
+      sound = getPref("sound", ["on", "off"], "on");
+      var levelInfo = S.LEVELS.filter(function (l) { return l.id === level; })[0];
+      var title = S.tr(game.title);
+
+      document.documentElement.lang = lang;
+      document.title = title + " · Play & Learn";
+
+      root.innerHTML =
+        '<header class="g-top">' +
+          '<a class="g-back" href="' + home + '">' +
+            '<span aria-hidden="true">←</span> <span class="g-back__label">' + esc(t("allGames")) + "</span></a>" +
+          '<div class="g-title"><span aria-hidden="true">' + game.icon + "</span> " + esc(title) + "</div>" +
+          '<div class="g-right">' +
+            '<button class="g-gear" type="button" id="g-gear" aria-expanded="false" aria-controls="g-panel" title="' + esc(t("settings")) + '">' +
+              '<span aria-hidden="true">⚙️</span><span class="g-gear__lang">' + esc(S.langInfo(lang).label) + "</span>" +
+              '<span class="g-gear__level">' + levelInfo.icon +
+                '<span class="g-gear__lvname"> ' + setup.cols + "×" + setup.rows + "</span></span>" +
+            "</button>" +
+          "</div>" +
+          '<div class="g-panel" id="g-panel" hidden>' +
+            '<div class="g-panel__row"><span class="g-panel__label">🌐 ' + esc(t("language")) + "</span>" +
+              seg("lang", S.LANGS.map(function (l) { return { value: l.id, label: esc(l.label), lang: l.id }; }), lang) +
+            "</div>" +
+            '<div class="g-panel__row"><span class="g-panel__label">🎯 ' + esc(t("level")) + "</span>" +
+              seg("level", S.LEVELS.map(function (l) {
+                var s = LEVEL_SETUP[l.id];
+                return { value: l.id, cls: "mm-lv",
+                  label: l.icon + "&nbsp;" + esc(S.tr(l.name)) + "<small>" + s.cols + "×" + s.rows + " · " +
+                    esc(t("pairsN").replace("{n}", s.cols * s.rows / 2)) + "</small>" };
+              }), level) +
+            "</div>" +
+            '<div class="g-panel__row"><span class="g-panel__label">🖼️ ' + esc(t("pictures")) + "</span>" +
+              seg("set", [{ value: "random", label: "🎲&nbsp;" + esc(t("random")) }].concat(SET_IDS.map(function (id) {
+                return { value: id, label: SETS[id].icon + "&nbsp;" + esc(S.tr(SETS[id].name)) };
+              })), setChoice, "mm-sets") +
+            "</div>" +
+            '<div class="g-panel__row"><span class="g-panel__label">👫 ' + esc(t("players")) + "</span>" +
+              seg("players", [
+                { value: "1", label: "🙂&nbsp;" + esc(t("solo")) },
+                { value: "2", label: "👫&nbsp;" + esc(t("duo")) }
+              ], players) +
+            "</div>" +
+            (canSpeak
+              ? '<div class="g-panel__row"><span class="g-panel__label">🔊 ' + esc(t("sound")) + "</span>" +
+                  seg("sound", [
+                    { value: "on", label: "🔊&nbsp;" + esc(t("on")) },
+                    { value: "off", label: "🔇&nbsp;" + esc(t("off")) }
+                  ], sound) +
+                "</div>"
+              : "") +
+            '<p class="g-panel__note">' + esc(t("restartNote")) + "</p>" +
+          "</div>" +
+        "</header>" +
+        '<main class="g-stage"><div class="g-card" id="g-card"></div></main>';
+
+      els.card = document.getElementById("g-card");
+      els.panel = document.getElementById("g-panel");
+      els.gear = document.getElementById("g-gear");
+
+      els.gear.addEventListener("click", function (e) { e.stopPropagation(); togglePanel(els.panel.hidden); });
+      els.panel.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var btn = e.target.closest("[data-lang],[data-level],[data-set],[data-players],[data-sound]");
+        if (!btn) return;
+        if (btn.hasAttribute("data-lang")) {
+          // Language only changes the words — keep the cards where they are.
+          S.set("lang", btn.getAttribute("data-lang"));
+          rebuildKeepingGame();
+          return;
+        }
+        if (btn.hasAttribute("data-sound")) {
+          setPref("sound", btn.getAttribute("data-sound"));
+          rebuildKeepingGame();
+          return;
+        }
+        if (btn.hasAttribute("data-level")) S.setLevel(GAME_ID, btn.getAttribute("data-level"));
+        if (btn.hasAttribute("data-set")) setPref("set", btn.getAttribute("data-set"));
+        if (btn.hasAttribute("data-players")) setPref("players", btn.getAttribute("data-players"));
+        build();
+        newGame();
+        togglePanel(true);
+      });
+    }
+
+    function rebuildKeepingGame() {
+      var saved = state;
+      build();
+      state = saved;
+      if (state.done) { finish(); } else { render(); }
+      togglePanel(true);
+    }
+
+    function togglePanel(open) {
+      if (!els.panel) return;
+      els.panel.hidden = !open;
+      els.gear.setAttribute("aria-expanded", String(open));
+    }
+    document.addEventListener("click", function () { togglePanel(false); });
+
+    /* ----- One game ----- */
+
+    function stopTimers() {
+      clearTimeout(hideTimer); hideTimer = null;
+      clearTimeout(finishTimer); finishTimer = null;
+      clearInterval(clockTimer); clockTimer = null;
+    }
+
+    function newGame() {
+      stopTimers();
+      var pairs = setup.cols * setup.rows / 2;
+
+      // "Mix" picks a different picture set every game.
+      var setId = setChoice;
+      if (setId === "random") {
+        var others = SET_IDS.filter(function (id) { return id !== lastSet; });
+        setId = pick(others);
+      }
+      lastSet = setId;
+
+      var items = shuffle(SETS[setId].items).slice(0, pairs);
+      var cards = shuffle(items.concat(items)).map(function (item) {
+        return { item: item, matched: false, owner: -1 };
+      });
+
+      state = {
+        setId: setId,
+        cards: cards,
+        open: [],          // indexes of face-up cards that are not matched yet (0, 1 or 2)
+        found: 0,
+        pairs: pairs,
+        moves: 0,
+        seconds: 0,
+        started: false,
+        done: false,
+        turn: 0,
+        scores: [0, 0],
+        message: "",
+        msgClass: ""
+      };
+      render();
+    }
+
+    function cardFace(item) {
+      if (SETS[state.setId].digits) {
+        var color = NUM_COLORS[(Number(item.e) - 1) % NUM_COLORS.length];
+        return '<span class="mm-num" style="color:' + color + '">' + esc(item.e) + "</span>";
+      }
+      return esc(item.e);
+    }
+
+    function render() {
+      var cards = state.cards.map(function (c, i) {
+        return '<button type="button" class="mm-card" data-i="' + i + '">' +
+          '<span class="mm-inner" aria-hidden="true">' +
+            '<span class="mm-face mm-face--back">?</span>' +
+            '<span class="mm-face mm-face--front">' + cardFace(c.item) + "</span>" +
+          "</span></button>";
+      }).join("");
+
+      var duo = players === "2";
+      var set = SETS[state.setId];
+
+      els.card.innerHTML =
+        '<div class="g-prompt"><h1 class="g-question">' + esc(t("title")) + "</h1></div>" +
+        '<p class="mm-rules">' + esc(t("rules")) + "</p>" +
+        '<div class="mm-stats">' +
+          '<span class="mm-stat mm-stat--set">' + set.icon + " " + esc(S.tr(set.name)) + "</span>" +
+          (duo
+            ? '<span class="mm-stat mm-stat--p1" id="mm-p1">' + esc(playerName(0)) + ' <b id="mm-s1"></b></span>' +
+              '<span class="mm-stat mm-stat--p2" id="mm-p2">' + esc(playerName(1)) + ' <b id="mm-s2"></b></span>'
+            : '<span class="mm-stat">🃏 ' + esc(t("pairs")) + ' <b id="mm-found"></b></span>' +
+              '<span class="mm-stat">👆 ' + esc(t("moves")) + ' <b id="mm-moves"></b></span>' +
+              '<span class="mm-stat">⏱️ <b id="mm-time"></b></span>') +
+        "</div>" +
+        '<div class="mm-board" id="mm-board" style="--cols:' + setup.cols + ";--rows:" + setup.rows +
+          ";--maxw:" + setup.maxw + 'px">' + cards + "</div>" +
+        '<p class="g-feedback" id="mm-feedback" aria-live="polite">&nbsp;</p>' +
+        '<div class="mm-tools">' +
+          '<button type="button" class="mm-tool" id="mm-new">🔄 ' + esc(t("newGame")) + "</button>" +
+        "</div>";
+
+      els.board = document.getElementById("mm-board");
+      els.cards = Array.prototype.slice.call(els.board.children);
+      els.feedback = document.getElementById("mm-feedback");
+
+      els.board.addEventListener("click", function (e) {
+        var card = e.target.closest(".mm-card");
+        if (!card || card.disabled) return;
+        flip(Number(card.getAttribute("data-i")));
+      });
+      document.getElementById("mm-new").addEventListener("click", newGame);
+
+      if (state.started && !state.done && !clockTimer) startClock();
+      paint();
+    }
+
+    function paint() {
+      var duo = players === "2";
+      els.cards.forEach(function (el, i) {
+        var c = state.cards[i];
+        var open = state.open.indexOf(i) !== -1;
+        el.classList.toggle("is-open", open);
+        el.classList.toggle("is-matched", c.matched);
+        el.classList.toggle("by-p1", duo && c.owner === 0);
+        el.classList.toggle("by-p2", duo && c.owner === 1);
+        el.disabled = state.done || c.matched || open;
+        var label = t("card").replace("{n}", i + 1);
+        if (open || c.matched) label += ": " + S.tr(c.item.n);
+        el.setAttribute("aria-label", label);
+      });
+
+      if (duo) {
+        document.getElementById("mm-s1").textContent = state.scores[0];
+        document.getElementById("mm-s2").textContent = state.scores[1];
+        document.getElementById("mm-p1").classList.toggle("is-turn", !state.done && state.turn === 0);
+        document.getElementById("mm-p2").classList.toggle("is-turn", !state.done && state.turn === 1);
+      } else {
+        document.getElementById("mm-found").textContent = state.found + "/" + state.pairs;
+        document.getElementById("mm-moves").textContent = state.moves;
+        document.getElementById("mm-time").textContent = fmtTime(state.seconds);
+      }
+
+      var msg = state.message;
+      if (!msg && !state.started) msg = duo ? t("startDuo").replace("{p}", playerName(0)) : t("start");
+      els.feedback.className = "g-feedback" + (state.msgClass ? " " + state.msgClass : "");
+      els.feedback.textContent = msg || " ";
+    }
+
+    function startClock() {
+      clearInterval(clockTimer);
+      clockTimer = setInterval(function () {
+        state.seconds++;
+        var el = document.getElementById("mm-time");
+        if (el) el.textContent = fmtTime(state.seconds);
+      }, 1000);
+    }
+
+    /** Turn the two open (different) cards face down again. */
+    function hideOpen() {
+      clearTimeout(hideTimer);
+      hideTimer = null;
+      state.open = [];
+      els.cards.forEach(function (el) { el.classList.remove("is-miss"); });
+      paint();
+    }
+
+    function flip(i) {
+      var c = state.cards[i];
+      if (state.done || c.matched || state.open.indexOf(i) !== -1) return;
+
+      // Two wrong cards are still showing — tapping a new card turns them back right away.
+      if (state.open.length === 2) hideOpen();
+
+      if (!state.started) {
+        state.started = true;
+        if (players !== "2") startClock();
+      }
+
+      state.open.push(i);
+      state.message = "";
+      state.msgClass = "";
+
+      if (state.open.length === 1) {
+        state.message = t("oneMore");
+        paint();
+        return;
+      }
+
+      // Second card of the move
+      state.moves++;
+      var a = state.cards[state.open[0]], b = c;
+      if (a.item.e === b.item.e) {
+        a.matched = b.matched = true;
+        a.owner = b.owner = state.turn;
+        state.scores[state.turn]++;
+        state.found++;
+        state.open = [];
+        var name = S.tr(a.item.n);
+        state.message = pick(t("praise")) + " " + (SETS[state.setId].digits ? "" : a.item.e + " ") + name +
+          (players === "2" && state.found < state.pairs ? " — " + t("duoAgain").replace("{p}", playerName(state.turn)) : "");
+        state.msgClass = "is-right";
+        paint();
+        speak(name);
+        if (state.found === state.pairs) win();
+      } else {
+        state.message = pick(t("miss"));
+        state.msgClass = "is-wrong";
+        if (players === "2") {
+          state.turn = 1 - state.turn;
+          state.message += " " + t("duoTurn").replace("{p}", playerName(state.turn));
+        }
+        paint();
+        state.open.forEach(function (k) { els.cards[k].classList.add("is-miss"); });
+        hideTimer = setTimeout(hideOpen, setup.wait);
+      }
+    }
+
+    function win() {
+      state.done = true;
+      clearInterval(clockTimer);
+      clockTimer = null;
+      paint();
+      els.board.classList.add("is-done");
+      els.cards.forEach(function (el, i) {
+        el.style.setProperty("--d", ((Math.floor(i / setup.cols) + (i % setup.cols)) * 0.06) + "s");
+      });
+      finishTimer = setTimeout(finish, 1200 + (setup.cols + setup.rows) * 60);
+    }
+
+    function finish() {
+      var idx = S.LEVELS.map(function (l) { return l.id; }).indexOf(level);
+      var html;
+
+      if (players === "2") {
+        var s = state.scores;
+        var title = s[0] === s[1] ? t("duoDraw") : t("duoWin").replace("{p}", playerName(s[0] > s[1] ? 0 : 1));
+        html =
+          '<div class="g-stars" aria-hidden="true"><span class="g-star is-on">' + (s[0] === s[1] ? "🤝" : "🏆") + "</span></div>" +
+          '<h1 class="g-end__title">' + esc(title) + "</h1>" +
+          '<p class="g-end__score">' + t("duoScore").replace("{a}", esc(playerName(0))).replace("{b}", esc(playerName(1)))
+            .replace("{x}", s[0]).replace("{y}", s[1]) + "</p>";
+      } else {
+        // Perfect memory needs about 1.6 moves per pair, so these limits are kind.
+        var stars = state.moves <= Math.ceil(state.pairs * 1.75) ? 3 : state.moves <= Math.ceil(state.pairs * 2.5) ? 2 : 1;
+        html =
+          '<div class="g-stars" aria-label="' + esc(t("stars").replace("{n}", stars)) + '">' +
+            [1, 2, 3].map(function (i) {
+              return '<span class="g-star' + (i <= stars ? " is-on" : "") + '" style="animation-delay:' + (i * 0.15) + 's">★</span>';
+            }).join("") +
+          "</div>" +
+          '<h1 class="g-end__title">' + esc(t("end" + stars)) + "</h1>" +
+          '<p class="g-end__score">' + t("endScore").replace("{p}", state.pairs).replace("{m}", state.moves)
+            .replace("{t}", fmtTime(state.seconds)) + "</p>";
+        var next = stars === 3 ? S.LEVELS[idx + 1] : null;
+      }
+
+      els.card.innerHTML =
+        '<div class="g-end">' + html +
+          '<div class="g-end__actions">' +
+            (next ? '<button class="g-btn g-btn--primary" type="button" id="g-next">' + next.icon + " " +
+              esc(t("nextLevel").replace("{l}", LEVEL_SETUP[next.id].cols + "×" + LEVEL_SETUP[next.id].rows)) + "</button>" : "") +
+            '<button class="g-btn' + (next ? "" : " g-btn--primary") + '" type="button" id="g-again">' + esc(t("again")) + "</button>" +
+            '<a class="g-btn" href="' + home + '">' + esc(t("more")) + "</a>" +
+          "</div>" +
+        "</div>";
+
+      document.getElementById("g-again").addEventListener("click", newGame);
+      if (next) document.getElementById("g-next").addEventListener("click", function () {
+        S.setLevel(GAME_ID, next.id);
+        build();
+        newGame();
+      });
+    }
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") togglePanel(false);
+    });
+
+    // Voices load a moment after the page opens.
+    if (canSpeak) { try { window.speechSynthesis.getVoices(); } catch (e) { /* ignore */ } }
+
+    build();
+    newGame();
+  })();
+  </script>
+</body>
+</html>

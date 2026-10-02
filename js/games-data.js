@@ -200,6 +200,19 @@ window.LEARNING_GAMES = {
       }
     },
     {
+      id: "memory-cards",
+      theme: "logic",
+      icon: "🃏",
+      ages: "3+",
+      url: "games/memory-cards/index.html",
+      title: { en: "Card Memory", hy: "Գտիր զույգը", ru: "Найди пару" },
+      description: {
+        en: "Flip the cards and find the matching pairs — animals, food, numbers and more. 3 board sizes, play alone or with a friend!",
+        hy: "Բացի՛ր քարտերը և գտի՛ր նույն զույգերը՝ կենդանիներ, ուտելիք, թվեր և այլն։ Դաշտի 3 չափ, խաղա՛ մենակ կամ ընկերոջ հետ։",
+        ru: "Переворачивай карточки и находи одинаковые пары — животные, еда, числа и не только. 3 размера поля, играй один или с другом!"
+      }
+    },
+    {
       id: "color-mixer",
       theme: "art",
       icon: "🎨",
