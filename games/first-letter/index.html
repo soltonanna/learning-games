@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>First Letter · Play &amp; Learn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="../shared/game.css">
+</head>
+<body>
+  <div id="game"></div>
+
+  <script src="../../js/games-data.js"></script>
+  <script src="../shared/engine.js"></script>
+  <script>
+    var WORDS = [
+      ["🍎", "Apple"], ["⚽", "Ball"], ["🐱", "Cat"], ["🐶", "Dog"], ["🥚", "Egg"], ["🐟", "Fish"],
+      ["🍇", "Grapes"], ["🎩", "Hat"], ["🍦", "Ice cream"], ["🧃", "Juice"], ["🪁", "Kite"], ["🦁", "Lion"],
+      ["🌙", "Moon"], ["👃", "Nose"], ["🍊", "Orange"], ["🐷", "Pig"], ["🐰", "Rabbit"], ["☀️", "Sun"],
+      ["🌳", "Tree"], ["☂️", "Umbrella"], ["🚐", "Van"], ["⌚", "Watch"], ["🦓", "Zebra"]
+    ];
+    var LETTERS = "ABCDEFGHIJKLMNOPRSTUVWZ".split("");
+
+    GameKit.start({
+      id: "first-letter",
+      rounds: 10,
+      makeQuestion: function () {
+        var w = GameKit.pick(WORDS);
+        var letter = w[1].charAt(0);
+        return {
+          key: w[1],
+          prompt: "Which letter does it start with?",
+          say: w[1] + ". Which letter does " + w[1].toLowerCase() + " start with?",
+          visual: '<div class="v-emoji">' + w[0] + "</div>",
+          choices: GameKit.withDistractors(letter, LETTERS, 4),
+          answer: letter,
+          explain: letter + " is for " + w[1] + ".",
+          size: "big"
+        };
+      }
+    });
+  </script>
+</body>
+</html>

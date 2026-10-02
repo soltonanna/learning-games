@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quick Sums · Play &amp; Learn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="../shared/game.css">
+  <style>
+    .sum-dots { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 14px; margin-top: 14px; }
+    .dots { display: flex; flex-wrap: wrap; gap: 5px; max-width: 120px; justify-content: center; }
+    .dots i { width: 16px; height: 16px; border-radius: 50%; background: var(--c); }
+    .dots--b i { background: #7C5CFF; }
+    .plus { font-family: var(--font-display); font-weight: 800; font-size: 28px; color: var(--ink-soft); }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+
+  <script src="../../js/games-data.js"></script>
+  <script src="../shared/engine.js"></script>
+  <script>
+    function dots(n, cls) { return '<span class="dots ' + cls + '">' + new Array(n + 1).join("<i></i>") + "</span>"; }
+
+    GameKit.start({
+      id: "quick-sums",
+      rounds: 10,
+      makeQuestion: function () {
+        var a = GameKit.randInt(1, 9);
+        var b = GameKit.randInt(1, 9);
+        var sum = a + b;
+        return {
+          key: a + "+" + b,
+          prompt: "What is " + a + " + " + b + "?",
+          say: "What is " + a + " plus " + b + "?",
+          visual:
+            '<div><div class="v-big-text">' + a + " + " + b + " = ?</div>" +
+            '<div class="sum-dots">' + dots(a, "dots--a") + '<span class="plus">+</span>' + dots(b, "dots--b") + "</div></div>",
+          choices: GameKit.numberChoices(sum, 2, 18, 4),
+          answer: sum,
+          explain: a + " + " + b + " = " + sum,
+          size: "big"
+        };
+      }
+    });
+  </script>
+</body>
+</html>

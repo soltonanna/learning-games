@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Color Words · Play &amp; Learn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="../shared/game.css">
+  <style>
+    .swatch { width: 150px; height: 150px; border-radius: 42% 58% 55% 45% / 50% 45% 55% 50%; box-shadow: inset 0 -10px 0 rgba(0,0,0,.12), 0 10px 20px -10px rgba(0,0,0,.35); }
+    .swatch--light { border: 3px solid #E6DED2; }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+
+  <script src="../../js/games-data.js"></script>
+  <script src="../shared/engine.js"></script>
+  <script>
+    var COLORS = [
+      ["red", "#EF4444"], ["blue", "#3B82F6"], ["green", "#22C55E"], ["yellow", "#FACC15"],
+      ["orange", "#F97316"], ["purple", "#A855F7"], ["pink", "#F472B6"], ["brown", "#8B5A2B"],
+      ["black", "#1F1B2E"], ["white", "#FFFFFF"], ["gray", "#9CA3AF"]
+    ];
+    var NAMES = COLORS.map(function (c) { return c[0]; });
+
+    GameKit.start({
+      id: "color-words",
+      rounds: 10,
+      makeQuestion: function () {
+        var c = GameKit.pick(COLORS);
+        return {
+          key: c[0],
+          prompt: "What color is this?",
+          visual: '<div class="swatch' + (c[0] === "white" ? " swatch--light" : "") + '" style="background:' + c[1] + '"></div>',
+          choices: GameKit.withDistractors(c[0], NAMES, 4),
+          answer: c[0],
+          explain: "It is " + c[0] + "."
+        };
+      }
+    });
+  </script>
+</body>
+</html>

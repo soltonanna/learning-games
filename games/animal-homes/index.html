@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Animal Homes · Play &amp; Learn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="../shared/game.css">
+</head>
+<body>
+  <div id="game"></div>
+
+  <script src="../../js/games-data.js"></script>
+  <script src="../shared/engine.js"></script>
+  <script>
+    var HOMES = {
+      ocean:  "🌊 Ocean",
+      farm:   "🚜 Farm",
+      jungle: "🌴 Jungle",
+      snow:   "❄️ Ice & snow",
+      desert: "🏜️ Desert"
+    };
+    var ANIMALS = [
+      ["🐬", "dolphin", "ocean"], ["🐙", "octopus", "ocean"], ["🦈", "shark", "ocean"], ["🐳", "whale", "ocean"],
+      ["🐄", "cow", "farm"], ["🐖", "pig", "farm"], ["🐑", "sheep", "farm"], ["🐔", "chicken", "farm"], ["🐴", "horse", "farm"],
+      ["🐒", "monkey", "jungle"], ["🦜", "parrot", "jungle"], ["🐅", "tiger", "jungle"], ["🦍", "gorilla", "jungle"],
+      ["🐻‍❄️", "polar bear", "snow"], ["🐧", "penguin", "snow"], ["🦭", "seal", "snow"],
+      ["🐪", "camel", "desert"], ["🦂", "scorpion", "desert"], ["🦎", "lizard", "desert"]
+    ];
+    var LABELS = Object.keys(HOMES).map(function (k) { return HOMES[k]; });
+
+    GameKit.start({
+      id: "animal-homes",
+      rounds: 10,
+      makeQuestion: function () {
+        var a = GameKit.pick(ANIMALS);
+        var home = HOMES[a[2]];
+        return {
+          key: a[1],
+          prompt: "Where does the " + a[1] + " live?",
+          visual: '<div class="v-emoji">' + a[0] + "</div>",
+          choices: GameKit.withDistractors(home, LABELS, 4),
+          answer: home
+        };
+      }
+    });
+  </script>
+</body>
+</html>

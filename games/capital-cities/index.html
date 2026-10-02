@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Capital Cities · Play &amp; Learn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="../shared/game.css">
+</head>
+<body>
+  <div id="game"></div>
+
+  <script src="../../js/games-data.js"></script>
+  <script src="../shared/engine.js"></script>
+  <script>
+    var COUNTRIES = [
+      ["🇦🇲", "Armenia", "Yerevan"], ["🇫🇷", "France", "Paris"], ["🇮🇹", "Italy", "Rome"],
+      ["🇯🇵", "Japan", "Tokyo"], ["🇬🇧", "the United Kingdom", "London"], ["🇪🇸", "Spain", "Madrid"],
+      ["🇩🇪", "Germany", "Berlin"], ["🇪🇬", "Egypt", "Cairo"], ["🇬🇷", "Greece", "Athens"],
+      ["🇬🇪", "Georgia", "Tbilisi"], ["🇨🇦", "Canada", "Ottawa"], ["🇦🇺", "Australia", "Canberra"],
+      ["🇨🇳", "China", "Beijing"], ["🇮🇳", "India", "New Delhi"], ["🇧🇷", "Brazil", "Brasília"],
+      ["🇦🇷", "Argentina", "Buenos Aires"], ["🇲🇽", "Mexico", "Mexico City"], ["🇺🇸", "the United States", "Washington, D.C."],
+      ["🇳🇱", "the Netherlands", "Amsterdam"], ["🇸🇪", "Sweden", "Stockholm"], ["🇳🇴", "Norway", "Oslo"],
+      ["🇰🇪", "Kenya", "Nairobi"], ["🇰🇷", "South Korea", "Seoul"], ["🇵🇹", "Portugal", "Lisbon"]
+    ];
+    var CITIES = COUNTRIES.map(function (c) { return c[2]; });
+
+    function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+    GameKit.start({
+      id: "capital-cities",
+      rounds: 10,
+      makeQuestion: function () {
+        var c = GameKit.pick(COUNTRIES);
+        return {
+          key: c[1],
+          prompt: "What is the capital of " + c[1] + "?",
+          visual: '<div><div class="v-emoji">' + c[0] + '</div><div class="v-caption">' + cap(c[1]) + "</div></div>",
+          choices: GameKit.withDistractors(c[2], CITIES, 4),
+          answer: c[2],
+          explain: c[2] + " is the capital of " + c[1] + "."
+        };
+      }
+    });
+  </script>
+</body>
+</html>

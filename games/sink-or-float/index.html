@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sink or Float? · Play &amp; Learn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="../shared/game.css">
+  <style>
+    .tank { position: relative; width: 100%; max-width: 360px; }
+    .tank .v-emoji { position: relative; z-index: 1; margin-bottom: -18px; }
+    .water { height: 60px; border-radius: 0 0 22px 22px; background: linear-gradient(#7DD3FC, #38BDF8); box-shadow: inset 0 6px 0 rgba(255,255,255,.5); }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+
+  <script src="../../js/games-data.js"></script>
+  <script src="../shared/engine.js"></script>
+  <script>
+    var FLOATS = "🛟 Floats";
+    var SINKS = "⬇️ Sinks";
+    var THINGS = [
+      ["🪨", "rock", false], ["🪶", "feather", true], ["🪙", "coin", false], ["🦆", "rubber duck", true],
+      ["🍎", "apple", true], ["🔑", "key", false], ["🍃", "leaf", true], ["🏐", "beach ball", true],
+      ["🥄", "spoon", false], ["⛵", "boat", true], ["⚓", "anchor", false], ["🪵", "log", true],
+      ["🧊", "ice cube", true], ["🔩", "bolt", false], ["🧽", "sponge", true], ["💍", "ring", false]
+    ];
+
+    GameKit.start({
+      id: "sink-or-float",
+      rounds: 10,
+      makeQuestion: function () {
+        var t = GameKit.pick(THINGS);
+        return {
+          key: t[1],
+          prompt: "Does the " + t[1] + " sink or float?",
+          visual: '<div class="tank"><div class="v-emoji">' + t[0] + '</div><div class="water"></div></div>',
+          choices: [FLOATS, SINKS],
+          answer: t[2] ? FLOATS : SINKS,
+          explain: "The " + t[1] + (t[2] ? " floats!" : " sinks!")
+        };
+      }
+    });
+  </script>
+</body>
+</html>

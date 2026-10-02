@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spin the Wheel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&family=Noto+Sans+Armenian:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg1: #fff4d6;
+    --bg2: #ffe0ec;
+    --ink: #2b2d42;
+    --accent: #ff4d6d;
+    --accent-dark: #c9184a;
+    --card: #ffffff;
+    --font: "Nunito", "Noto Sans Armenian", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    font-family: var(--font);
+    color: var(--ink);
+    background: linear-gradient(160deg, var(--bg1), var(--bg2));
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  button { font-family: inherit; cursor: pointer; }
+  [hidden] { display: none !important; }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px;
+  }
+  .topbar h1 { flex: 1; margin: 0; font-size: clamp(20px, 4.5vw, 30px); font-weight: 900; text-align: center; }
+  .icon-btn {
+    width: 46px; height: 46px; border-radius: 50%;
+    border: none; background: var(--card); color: var(--ink);
+    font-size: 22px; display: grid; place-items: center;
+    box-shadow: 0 3px 0 rgba(0,0,0,.12); text-decoration: none;
+  }
+  .icon-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.12); }
+
+  .screen { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 8px 16px 24px; }
+
+  /* ---------- language picker ---------- */
+  .pick-title { font-size: clamp(18px, 3.6vw, 24px); font-weight: 800; text-align: center; margin: 16px 0 24px; line-height: 1.5; }
+  .lang-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; width: 100%; max-width: 720px; }
+  .lang-card {
+    border: none; border-radius: 24px; padding: 22px 8px 18px;
+    background: var(--card); color: var(--ink);
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    box-shadow: 0 6px 0 rgba(0,0,0,.12);
+    transition: transform .15s;
+  }
+  .lang-card:hover { transform: translateY(-4px); }
+  .lang-card:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,.12); }
+  .lang-card .big {
+    width: clamp(70px, 18vw, 110px); aspect-ratio: 1; border-radius: 50%;
+    display: grid; place-items: center; color: #fff;
+    font-size: clamp(38px, 10vw, 60px); font-weight: 900;
+  }
+  .lang-card .name { font-size: clamp(16px, 3.4vw, 22px); font-weight: 800; }
+  .lang-card[data-lang="hy"] .big { background: #ff922b; }
+  .lang-card[data-lang="ru"] .big { background: #4dabf7; }
+  .lang-card[data-lang="en"] .big { background: #51cf66; }
+  @media (max-width: 480px) { .lang-grid { grid-template-columns: 1fr; max-width: 320px; } .lang-card { flex-direction: row; justify-content: flex-start; padding: 14px 18px; gap: 16px; } }
+
+  /* ---------- wheel ---------- */
+  .hint { margin: 0 0 12px; text-align: center; font-weight: 700; font-size: clamp(15px, 3vw, 19px); max-width: 560px; }
+  .wheel-wrap { position: relative; width: 100%; display: flex; justify-content: center; }
+  #wheel { display: block; cursor: pointer; filter: drop-shadow(0 10px 18px rgba(0,0,0,.18)); }
+  .pointer {
+    position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
+    width: 0; height: 0; z-index: 2;
+    border-left: 20px solid transparent; border-right: 20px solid transparent;
+    border-top: 38px solid var(--accent);
+    filter: drop-shadow(0 3px 2px rgba(0,0,0,.3));
+  }
+  .pointer.bump { animation: bump .12s; }
+  @keyframes bump { 50% { transform: translateX(-50%) rotate(-12deg); } }
+  .spin-btn {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: var(--hub, 110px); height: var(--hub, 110px); border-radius: 50%;
+    border: 6px solid #fff; background: var(--accent); color: #fff;
+    font-weight: 900; font-size: calc(var(--hub, 110px) * .19); line-height: 1.05;
+    box-shadow: 0 4px 0 var(--accent-dark), 0 6px 14px rgba(0,0,0,.25);
+    padding: 4px; z-index: 2;
+  }
+  .spin-btn:active { transform: translate(-50%, calc(-50% + 3px)); box-shadow: 0 1px 0 var(--accent-dark); }
+  .spin-btn:disabled { filter: saturate(.4); cursor: default; }
+  .counter { font-weight: 800; font-size: 18px; margin: 16px 0 6px; }
+  .used { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 560px; }
+  .used .label { width: 100%; text-align: center; font-size: 14px; opacity: .7; font-weight: 700; }
+  .chip { min-width: 34px; padding: 4px 8px; border-radius: 10px; background: rgba(255,255,255,.75); font-weight: 900; text-align: center; text-decoration: line-through; opacity: .75; }
+
+  /* ---------- result modal ---------- */
+  .modal { position: fixed; inset: 0; background: rgba(30, 20, 60, .45); display: grid; place-items: center; padding: 16px; z-index: 10; }
+  .card {
+    background: var(--card); border-radius: 28px; padding: 28px 24px 24px;
+    width: min(420px, 100%); text-align: center;
+    box-shadow: 0 20px 50px rgba(0,0,0,.3);
+    animation: pop .35s cubic-bezier(.2, 1.6, .4, 1);
+  }
+  @keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .big-letter {
+    width: 170px; height: 170px; margin: 0 auto 16px; border-radius: 50%;
+    display: grid; place-items: center; color: #fff;
+    font-size: 78px; font-weight: 900; text-shadow: 0 3px 0 rgba(0,0,0,.2);
+  }
+  .card p { font-size: 22px; font-weight: 800; margin: 0 0 20px; line-height: 1.35; }
+  .card .actions { display: flex; flex-direction: column; gap: 10px; }
+  .btn {
+    border: none; border-radius: 16px; padding: 14px 20px;
+    font-size: 20px; font-weight: 900; color: #fff; background: #40c057;
+    box-shadow: 0 4px 0 #2b8a3e;
+  }
+  .btn.secondary { background: #748ffc; box-shadow: 0 4px 0 #4c6ef5; }
+  .btn:active { transform: translateY(3px); box-shadow: none; }
+
+  .confetti { position: fixed; top: -20px; width: 10px; height: 16px; border-radius: 3px; z-index: 11; pointer-events: none; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="icon-btn" id="homeBtn" href="../../index.html" title="Home">🏠</a>
+  <h1 id="title">Spin the Wheel</h1>
+  <button class="icon-btn" id="soundBtn" title="Sound">🔊</button>
+  <button class="icon-btn" id="langBtn" title="Language" hidden>🌐</button>
+</header>
+
+<!-- 1. Choose a language -->
+<section class="screen" id="pickScreen">
+  <p class="pick-title">Ընտրիր լեզուն · Выбери язык · Choose a language</p>
+  <div class="lang-grid">
+    <button class="lang-card" data-lang="hy"><span class="big">Ա</span><span class="name">Հայերեն</span></button>
+    <button class="lang-card" data-lang="ru"><span class="big">А</span><span class="name">Русский</span></button>
+    <button class="lang-card" data-lang="en"><span class="big">A</span><span class="name">English</span></button>
+  </div>
+</section>
+
+<!-- 2. The wheel -->
+<section class="screen" id="gameScreen" hidden>
+  <p class="hint" id="hint"></p>
+  <div class="wheel-wrap" id="wheelWrap">
+    <div class="pointer" id="pointer"></div>
+    <canvas id="wheel"></canvas>
+    <button class="spin-btn" id="spinBtn">SPIN</button>
+  </div>
+  <p class="counter" id="counter"></p>
+  <div class="used" id="used"></div>
+</section>
+
+<!-- 3. Result / finish popup -->
+<div class="modal" id="modal" hidden>
+  <div class="card">
+    <div class="big-letter" id="bigLetter"></div>
+    <p id="modalText"></p>
+    <div class="actions" id="modalActions"></div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   LANGUAGES
+   To change which letters are on the wheel, edit the `letters` lists.
+   ===================================================================== */
+const LANGS = {
+  hy: {
+    // Armenian: Ւ never starts a word, so the wheel uses "Ու" in its place.
+    letters: ["Ա","Բ","Գ","Դ","Ե","Զ","Է","Ը","Թ","Ժ","Ի","Լ","Խ","Ծ","Կ","Հ","Ձ","Ղ","Ճ","Մ",
+              "Յ","Ն","Շ","Ո","Չ","Պ","Ջ","Ռ","Ս","Վ","Տ","Ր","Ց","Ու","Փ","Ք","Օ","Ֆ"],
+    t: {
+      title: "Պտտիր անիվը",
+      spin: "Պտտել",
+      hint: "Սեղմիր «Պտտել» կոճակը և ասա բառեր ընկած տառով",
+      say: L => `Ասա բառեր, որոնք սկսվում են «${L}» տառով։`,
+      done: "Պատրաստ է ✓",
+      left: n => `Մնաց ${n} տառ`,
+      played: "Արդեն խաղացինք՝",
+      finish: "Ապրե՛ս։ Բոլոր տառերն անցանք 🎉",
+      again: "Նորից խաղալ",
+      other: "Այլ լեզու",
+    },
+  },
+  ru: {
+    // Russian: Ъ, Ы, Ь are left out — no words start with them.
+    letters: ["А","Б","В","Г","Д","Е","Ё","Ж","З","И","Й","К","Л","М","Н","О","П","Р","С","Т",
+              "У","Ф","Х","Ц","Ч","Ш","Щ","Э","Ю","Я"],
+    t: {
+      title: "Крути колесо",
+      spin: "Крути!",
+      hint: "Нажми «Крути!» и назови слова на выпавшую букву",
+      say: L => `Назови слова на букву «${L}»!`,
+      done: "Готово ✓",
+      left: n => `Осталось букв: ${n}`,
+      played: "Уже были:",
+      finish: "Молодец! Все буквы пройдены 🎉",
+      again: "Играть снова",
+      other: "Другой язык",
+    },
+  },
+  en: {
+    letters: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""),
+    t: {
+      title: "Spin the Wheel",
+      spin: "SPIN",
+      hint: "Press SPIN, then say words that start with the letter",
+      say: L => `Say words that start with “${L}”!`,
+      done: "Done ✓",
+      left: n => `${n} letters left`,
+      played: "Already played:",
+      finish: "Great job! You played every letter 🎉",
+      again: "Play again",
+      other: "Change language",
+    },
+  },
+};
+
+const COLORS = ["#ff6b6b","#ffa94d","#fcc419","#69db7c","#20c997","#4dabf7","#748ffc","#da77f2","#f783ac"];
+const TAU = Math.PI * 2;
+const mod = (a, m) => ((a % m) + m) % m;
+const $ = id => document.getElementById(id);
+
+/* ---------- state ---------- */
+let lang = null;          // "hy" | "ru" | "en"
+let letters = [];         // letters still on the wheel
+let used = [];            // letters already played
+let rotation = 0;         // wheel rotation in radians
+let spinning = false;
+let size = 400, dpr = 1;
+let soundOn = true;
+
+const canvas = $("wheel");
+const ctx = canvas.getContext("2d");
+
+/* =====================================================================
+   SOUND (tiny Web Audio blips — no files needed)
+   ===================================================================== */
+let audio = null;
+function ensureAudio() {
+  if (!audio) { try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+  if (audio && audio.state === "suspended") audio.resume();
+}
+function beep(freq, dur, type = "sine", vol = 0.08, delay = 0) {
+  if (!soundOn || !audio) return;
+  const t = audio.currentTime + delay;
+  const o = audio.createOscillator(), g = audio.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(audio.destination);
+  o.start(t); o.stop(t + dur + 0.02);
+}
+const tick = () => beep(1100, 0.035, "square", 0.035);
+const win = () => { beep(660, 0.18, "triangle", 0.12); beep(880, 0.18, "triangle", 0.12, 0.13); beep(1320, 0.35, "triangle", 0.12, 0.26); };
+
+/* =====================================================================
+   DRAWING
+   ===================================================================== */
+function colorFor(i, n) {
+  let c = i % COLORS.length;
+  // keep last and first slice from having the same color
+  if (i === n - 1 && n > 1 && c === 0) c = 1;
+  return COLORS[c];
+}
+
+function resize() {
+  const wrap = $("wheelWrap");
+  size = Math.floor(Math.min(wrap.clientWidth, window.innerHeight * 0.64, 580));
+  size = Math.max(size, 240);
+  dpr = window.devicePixelRatio || 1;
+  canvas.width = size * dpr;
+  canvas.height = size * dpr;
+  canvas.style.width = size + "px";
+  canvas.style.height = size + "px";
+  wrap.style.setProperty("--hub", Math.round(size * 0.27) + "px");
+  draw();
+}
+
+function draw() {
+  const c = size / 2;
+  const ring = Math.max(10, size * 0.045);
+  const R = c - ring;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, size, size);
+
+  // outer ring with little lights
+  ctx.beginPath(); ctx.arc(c, c, c - 1, 0, TAU); ctx.fillStyle = "#2b2d42"; ctx.fill();
+  const bulbs = 24;
+  for (let k = 0; k < bulbs; k++) {
+    const a = (k / bulbs) * TAU;
+    ctx.beginPath();
+    ctx.arc(c + Math.cos(a) * (c - ring / 2 - 1), c + Math.sin(a) * (c - ring / 2 - 1), ring * 0.22, 0, TAU);
+    ctx.fillStyle = k % 2 ? "#ffe066" : "#fff9db";
+    ctx.fill();
+  }
+
+  const n = letters.length;
+  ctx.save();
+  ctx.translate(c, c);
+  ctx.rotate(rotation);
+
+  if (n === 0) {
+    ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.fillStyle = "#e9ecef"; ctx.fill();
+  } else {
+    const seg = TAU / n;
+    const textR = R * 0.8;
+    const maxW = Math.min(seg * textR * 0.82, R * 0.3);
+    const baseFont = Math.min(R * 0.14, seg * textR * 0.75);
+
+    for (let i = 0; i < n; i++) {
+      const start = -Math.PI / 2 + i * seg;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, R, start, start + seg);
+      ctx.closePath();
+      ctx.fillStyle = colorFor(i, n);
+      ctx.fill();
+      ctx.lineWidth = Math.max(1.5, size / 260);
+      ctx.strokeStyle = "rgba(255,255,255,.9)";
+      ctx.stroke();
+
+      // letter, top facing outwards
+      ctx.save();
+      ctx.rotate(start + seg / 2);
+      ctx.translate(textR, 0);
+      ctx.rotate(Math.PI / 2);
+      let fs = baseFont;
+      ctx.font = `900 ${fs}px ${getComputedStyle(document.body).fontFamily}`;
+      const w = ctx.measureText(letters[i]).width;
+      if (w > maxW) { fs = fs * maxW / w; ctx.font = `900 ${fs}px ${getComputedStyle(document.body).fontFamily}`; }
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.lineJoin = "round";
+      ctx.lineWidth = Math.max(2, fs * 0.12);
+      ctx.strokeStyle = "rgba(0,0,0,.28)";
+      ctx.strokeText(letters[i], 0, 0);
+      ctx.fillStyle = "#fff";
+      ctx.fillText(letters[i], 0, 0);
+      ctx.restore();
+    }
+  }
+  ctx.restore();
+}
+
+/* =====================================================================
+   SPIN
+   ===================================================================== */
+function pointerIndex(r, n) { return Math.floor(mod(-r, TAU) / (TAU / n)) % n; }
+
+function spin() {
+  if (spinning || letters.length === 0) return;
+  ensureAudio();
+  spinning = true;
+  $("spinBtn").disabled = true;
+
+  const n = letters.length;
+  const seg = TAU / n;
+  const winner = Math.floor(Math.random() * n);
+  const jitter = (Math.random() - 0.5) * seg * 0.6;       // don't always stop dead-centre
+  const desired = mod(-(winner + 0.5) * seg + jitter, TAU);
+  const turns = 4 + Math.floor(Math.random() * 2);         // 4–5 full turns
+  const start = rotation;
+  const target = rotation + turns * TAU + mod(desired - mod(rotation, TAU), TAU);
+  const duration = 2600 + Math.random() * 700;             // ~2.6–3.3 s
+  const t0 = performance.now();
+  let last = pointerIndex(rotation, n);
+
+  function frame(now) {
+    const p = Math.min(1, (now - t0) / duration);
+    const eased = 1 - Math.pow(1 - p, 4);                  // fast start, slow stop
+    rotation = start + (target - start) * eased;
+    draw();
+    const idx = pointerIndex(rotation, n);
+    if (idx !== last) {
+      last = idx; tick();
+      const ptr = $("pointer"); ptr.classList.remove("bump"); void ptr.offsetWidth; ptr.classList.add("bump");
+    }
+    if (p < 1) requestAnimationFrame(frame);
+    else {
+      rotation = mod(rotation, TAU);
+      spinning = false;
+      setTimeout(() => showLetter(winner), 250);
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+/* =====================================================================
+   RESULT POPUP
+   ===================================================================== */
+function showLetter(i) {
+  const t = LANGS[lang].t;
+  const L = letters[i];
+  const lower = L.toLocaleLowerCase(lang);
+  const big = $("bigLetter");
+  big.textContent = lower !== L ? `${L}${lower}` : L;
+  big.style.fontSize = big.textContent.length > 2 ? "60px" : "78px";
+  big.style.background = colorFor(i, letters.length);
+  big.hidden = false;
+  $("modalText").textContent = t.say(L);
+  setActions([{ label: t.done, onClick: () => removeLetter(i) }]);
+  $("modal").hidden = false;
+  win();
+  confetti();
+}
+
+function removeLetter(i) {
+  used.push(letters[i]);
+  letters.splice(i, 1);
+  $("modal").hidden = true;
+  updateInfo();
+  draw();
+  $("spinBtn").disabled = false;
+  if (letters.length === 0) setTimeout(showFinish, 300);
+}
+
+function showFinish() {
+  const t = LANGS[lang].t;
+  const big = $("bigLetter");
+  big.textContent = "⭐";
+  big.style.background = "#ffd43b";
+  big.style.fontSize = "78px";
+  $("modalText").textContent = t.finish;
+  setActions([
+    { label: t.again, onClick: () => { $("modal").hidden = true; startGame(lang); } },
+    { label: t.other, secondary: true, onClick: () => { $("modal").hidden = true; showPicker(); } },
+  ]);
+  $("modal").hidden = false;
+  win();
+  confetti(80);
+}
+
+function setActions(list) {
+  const box = $("modalActions");
+  box.innerHTML = "";
+  list.forEach(a => {
+    const b = document.createElement("button");
+    b.className = "btn" + (a.secondary ? " secondary" : "");
+    b.textContent = a.label;
+    b.onclick = a.onClick;
+    box.appendChild(b);
+  });
+}
+
+function confetti(count = 40) {
+  for (let k = 0; k < count; k++) {
+    const p = document.createElement("div");
+    p.className = "confetti";
+    p.style.left = Math.random() * 100 + "vw";
+    p.style.background = COLORS[k % COLORS.length];
+    p.style.animationDuration = 1.6 + Math.random() * 1.4 + "s";
+    p.style.animationDelay = Math.random() * 0.4 + "s";
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 3600);
+  }
+}
+
+/* =====================================================================
+   SCREENS
+   ===================================================================== */
+function updateInfo() {
+  const t = LANGS[lang].t;
+  $("counter").textContent = t.left(letters.length);
+  const box = $("used");
+  box.innerHTML = "";
+  if (used.length) {
+    const lbl = document.createElement("div");
+    lbl.className = "label"; lbl.textContent = t.played;
+    box.appendChild(lbl);
+    used.forEach(L => {
+      const s = document.createElement("span");
+      s.className = "chip"; s.textContent = L;
+      box.appendChild(s);
+    });
+  }
+}
+
+function startGame(code) {
+  lang = code;
+  const { t } = LANGS[code];
+  letters = LANGS[code].letters.slice();
+  used = [];
+  rotation = 0;
+  document.documentElement.lang = code;
+  document.title = t.title;
+  $("title").textContent = t.title;
+  $("hint").textContent = t.hint;
+  $("spinBtn").textContent = t.spin;
+  $("spinBtn").disabled = false;
+  $("pickScreen").hidden = true;
+  $("gameScreen").hidden = false;
+  $("langBtn").hidden = false;
+  updateInfo();
+  resize();
+}
+
+function showPicker() {
+  document.title = "Spin the Wheel";
+  $("title").textContent = "Spin the Wheel";
+  $("gameScreen").hidden = true;
+  $("langBtn").hidden = true;
+  $("pickScreen").hidden = false;
+}
+
+/* ---------- events ---------- */
+document.querySelectorAll(".lang-card").forEach(b => b.addEventListener("click", () => { ensureAudio(); startGame(b.dataset.lang); }));
+$("spinBtn").addEventListener("click", spin);
+canvas.addEventListener("click", spin);
+$("langBtn").addEventListener("click", () => { if (!spinning) showPicker(); });
+$("soundBtn").addEventListener("click", () => { soundOn = !soundOn; $("soundBtn").textContent = soundOn ? "🔊" : "🔇"; });
+document.addEventListener("keydown", e => {
+  if ((e.code === "Space" || e.code === "Enter") && !$("gameScreen").hidden && $("modal").hidden) { e.preventDefault(); spin(); }
+});
+window.addEventListener("resize", () => { if (!$("gameScreen").hidden) resize(); });
+if (document.fonts) document.fonts.ready.then(() => { if (lang) draw(); });
+
+// Optional: open straight into a language with ?lang=hy | ru | en
+const startLang = new URLSearchParams(location.search).get("lang");
+if (LANGS[startLang]) startGame(startLang);
+</script>
+</body>
+</html>
