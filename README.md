@@ -2,6 +2,9 @@
 
 Open `index.html` in a browser (double-click works, no server or build step needed).
 
+**Online:** every push to `main` is published to GitHub Pages automatically
+(`.github/workflows/pages.yml`) at `https://soltonanna.github.io/learning-games/`.
+
 ## Structure
 
 ```
