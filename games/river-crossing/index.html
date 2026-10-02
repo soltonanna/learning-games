@@ -1,0 +1,972 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>River Crossing · Play &amp; Learn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700;800&family=Noto+Sans+Armenian:wght@500;600;700;800&display=swap">
+  <link rel="stylesheet" href="../shared/game.css">
+  <style>
+    :root {
+      --grass: #9BD86A;
+      --grass-dark: #6DB33F;
+      --water: #5BC0EB;
+      --water-dark: #2E9BD1;
+      --wood: #B9773E;
+      --wood-dark: #8A5226;
+    }
+
+    /* ---------- Puzzle picker ---------- */
+    .rc-tabs {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .rc-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 44px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 3px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    .rc-tab:hover { border-color: var(--c); }
+    .rc-tab.is-active { background: var(--c); border-color: var(--c); color: #fff; }
+    .rc-tab__dot { font-size: 12px; }
+
+    .rc-story {
+      margin: 6px 0 0;
+      color: var(--ink-soft);
+      font-weight: 700;
+      font-size: 17px;
+      text-align: center;
+    }
+
+    /* ---------- Rules ---------- */
+    .rc-rules {
+      margin: 14px auto 0;
+      padding: 12px 16px;
+      max-width: 560px;
+      border-radius: 18px;
+      background: var(--soft);
+      list-style: none;
+      font-weight: 700;
+      font-size: 15px;
+      line-height: 1.4;
+    }
+    .rc-rules li + li { margin-top: 6px; }
+
+    .rc-status {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 14px 0 0;
+    }
+    .rc-pill {
+      padding: 4px 14px;
+      border-radius: 999px;
+      background: #fff;
+      border: 2px solid var(--line);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .rc-pill b { color: var(--c); font-variant-numeric: tabular-nums; }
+
+    /* ---------- Scene: top bank, river, bottom bank ---------- */
+    .rc-scene {
+      width: min(560px, 100%);
+      margin: 14px auto 0;
+      border-radius: 26px;
+      overflow: hidden;
+      border: 3px solid var(--line);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .rc-bank {
+      position: relative;
+      display: flex;
+      flex-wrap: wrap;
+      align-content: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 124px;
+      padding: 30px 10px 12px;
+      background:
+        radial-gradient(circle at 12% 70%, rgba(255,255,255,.25) 0 6px, transparent 7px),
+        radial-gradient(circle at 88% 40%, rgba(255,255,255,.2) 0 5px, transparent 6px),
+        var(--grass);
+      transition: background-color .3s ease;
+    }
+    .rc-bank--bottom { padding: 12px 10px 30px; }
+    .rc-bank__label {
+      position: absolute;
+      left: 12px;
+      top: 6px;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 14px;
+      color: #2F5E17;
+    }
+    .rc-bank--bottom .rc-bank__label { top: auto; bottom: 6px; }
+    .rc-bank.is-boat::after {
+      content: "⚓";
+      position: absolute;
+      right: 12px;
+      top: 6px;
+      font-size: 14px;
+    }
+    .rc-bank--bottom.is-boat::after { top: auto; bottom: 6px; }
+    .rc-bank.is-fail { background-color: #F7B7C2; background-image: none; animation: g-shake .45s ease 2; }
+    .rc-bank.is-goal { background-color: #FFE38A; background-image: none; }
+
+    .rc-river {
+      position: relative;
+      height: 190px;
+      background:
+        repeating-linear-gradient(170deg, transparent 0 22px, rgba(255,255,255,.18) 22px 26px, transparent 26px 48px),
+        linear-gradient(180deg, var(--water), var(--water-dark));
+      background-size: 200% 100%, 100% 100%;
+      animation: rc-flow 6s linear infinite;
+    }
+    @keyframes rc-flow { to { background-position: 200% 0, 0 0; } }
+
+    /* ---------- Characters ---------- */
+    .rc-char {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 74px;
+      min-height: 82px;
+      padding: 4px 2px;
+      border-radius: 18px;
+      border: 3px solid rgba(255,255,255,.85);
+      border-bottom-width: 5px;
+      background: rgba(255,255,255,.7);
+      color: var(--ink);
+      font-family: var(--font-body);
+      cursor: pointer;
+      transition: transform .12s ease, border-color .12s ease, opacity .2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .rc-char:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--c); }
+    .rc-char:focus-visible { outline: 4px solid var(--c); outline-offset: 2px; }
+    .rc-char:disabled { cursor: default; }
+    .rc-char.is-far { opacity: .75; }
+    .rc-char__emoji { font-size: 40px; line-height: 1.05; }
+    .rc-char--big .rc-char__emoji { font-size: 50px; }
+    .rc-char--small .rc-char__emoji { font-size: 32px; }
+    .rc-char__name {
+      margin-top: 2px;
+      max-width: 100%;
+      font-weight: 800;
+      font-size: 11px;
+      line-height: 1.1;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .rc-char__w { font-size: 10px; letter-spacing: 1px; color: var(--wood-dark); }
+    .rc-char.is-hint { border-color: #FFC531; background: #FFF6D6; animation: rc-hint 1s ease infinite; }
+    @keyframes rc-hint { 50% { transform: translateY(-5px) scale(1.06); } }
+    .rc-char.is-victim { animation: rc-victim .8s ease both; }
+    @keyframes rc-victim { 30% { transform: rotate(-12deg) scale(1.1); } 60% { transform: rotate(10deg); } 100% { transform: scale(.9); opacity: .55; } }
+
+    /* ---------- Boat ---------- */
+    .rc-boat {
+      position: absolute;
+      left: 50%;
+      top: 10px;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 6px;
+      width: 230px;
+      height: 104px;
+      padding: 8px 12px 12px;
+      border: none;
+      border-radius: 14px 14px 60px 60px;
+      background: linear-gradient(180deg, var(--wood), var(--wood-dark));
+      box-shadow: inset 0 6px 0 rgba(255,255,255,.22), 0 10px 0 rgba(0,0,0,.12);
+      cursor: pointer;
+      transition: top 1.1s cubic-bezier(.45, 0, .3, 1);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .rc-boat.at-1 { top: calc(100% - 114px); }
+    .rc-boat.is-sailing { animation: rc-rock .55s ease-in-out infinite alternate; }
+    @keyframes rc-rock { from { transform: translateX(-50%) rotate(-2.5deg); } to { transform: translateX(-50%) rotate(2.5deg); } }
+    .rc-boat:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
+    .rc-boat.is-bump { animation: rc-bump .35s ease; }
+    @keyframes rc-bump { 0%, 100% { transform: translateX(-50%); } 25% { transform: translateX(calc(-50% - 7px)); } 75% { transform: translateX(calc(-50% + 7px)); } }
+    .rc-seat {
+      display: grid;
+      place-items: center;
+      width: 64px;
+      height: 76px;
+      border-radius: 14px;
+      border: 3px dashed rgba(255,255,255,.55);
+      color: rgba(255,255,255,.7);
+      font-size: 22px;
+    }
+    .rc-boat .rc-char { width: 66px; min-height: 76px; }
+    .rc-boat .rc-char__name { display: none; }
+    .rc-load {
+      position: absolute;
+      left: 50%;
+      top: -12px;
+      transform: translateX(-50%);
+      padding: 1px 10px;
+      border-radius: 999px;
+      background: #fff;
+      color: var(--wood-dark);
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 13px;
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(0,0,0,.15);
+    }
+    .rc-load.is-full { color: var(--wrong); }
+
+    /* ---------- Tools ---------- */
+    .rc-tools {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .rc-tool {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 50px;
+      padding: 6px 18px;
+      border-radius: 999px;
+      border: 3px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 17px;
+      cursor: pointer;
+    }
+    .rc-tool:hover:not(:disabled) { border-color: var(--c); }
+    .rc-tool:disabled { opacity: .45; cursor: default; }
+    .rc-tool--primary { background: var(--c); border-color: var(--c); color: #fff; font-size: 19px; padding: 6px 26px; }
+    .rc-tool--primary:hover:not(:disabled) { filter: brightness(1.06); }
+    .rc-tool[hidden] { display: none; }
+
+    .rc-end__note { margin: -12px 0 22px; font-weight: 800; color: #178C57; }
+
+    @media (max-width: 600px) {
+      .rc-story { font-size: 15px; }
+      .rc-rules { font-size: 14px; padding: 10px 12px; }
+      .rc-char { width: 64px; min-height: 74px; }
+      .rc-char__emoji { font-size: 34px; }
+      .rc-char--big .rc-char__emoji { font-size: 42px; }
+      .rc-char--small .rc-char__emoji { font-size: 28px; }
+      .rc-river { height: 170px; }
+      .rc-boat { width: 196px; height: 96px; }
+      .rc-boat.at-1 { top: calc(100% - 106px); }
+      .rc-boat .rc-char, .rc-seat { width: 58px; min-height: 68px; height: auto; }
+      .rc-seat { height: 68px; }
+      .rc-tool { font-size: 15px; padding: 6px 14px; }
+      .rc-tool--primary { font-size: 17px; padding: 6px 20px; }
+      .rc-tab { font-size: 14px; padding: 6px 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .rc-river, .rc-boat.is-sailing, .rc-char.is-hint { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+
+  <script src="../../js/settings.js"></script>
+  <script src="../../js/games-data.js"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    var S = window.PlaySettings;
+    var GAME_ID = "river-crossing";
+
+    /* ======================================================================
+       PUZZLES — one for each level (Easy / Medium / Hard).
+         chars      who has to cross. size "big"/"small" only changes the picture.
+         seats      how many fit in the boat (or use maxWeight + weight per character)
+         canSail    returns an error key if this boat load is not allowed to sail
+         check      gets everyone on ONE side of the river (boat passengers count for
+                    the side the boat is on) and returns a problem, or null if all is fine
+       ====================================================================== */
+
+    var PUZZLES = [
+      {
+        id: "farm",
+        level: "easy",
+        icon: "🐺🐐🥬",
+        title: { en: "The Farmer's Boat", hy: "Ֆերմերի նավակը", ru: "Лодка фермера" },
+        story: {
+          en: "Help the farmer take the wolf, the goat and the cabbage across the river.",
+          hy: "Օգնի՛ր ֆերմերին գետի մյուս ափ տանել գայլին, այծին և կաղամբը։",
+          ru: "Помоги фермеру перевезти через реку волка, козу и капусту."
+        },
+        rules: [
+          { en: "🚣 Only the farmer can row the boat.", hy: "🚣 Նավակը կարող է վարել միայն ֆերմերը։", ru: "🚣 Грести умеет только фермер." },
+          { en: "🛶 The boat fits the farmer and one more.", hy: "🛶 Նավակում տեղ կա ֆերմերի և ևս մեկի համար։", ru: "🛶 В лодке есть место для фермера и ещё одного." },
+          { en: "🐺 + 🐐 Never leave the wolf with the goat without the farmer.", hy: "🐺 + 🐐 Գայլին և այծին մի՛ թող միասին առանց ֆերմերի։", ru: "🐺 + 🐐 Нельзя оставлять волка с козой без фермера." },
+          { en: "🐐 + 🥬 Never leave the goat with the cabbage without the farmer.", hy: "🐐 + 🥬 Այծին և կաղամբը մի՛ թող միասին առանց ֆերմերի։", ru: "🐐 + 🥬 Нельзя оставлять козу с капустой без фермера." }
+        ],
+        chars: [
+          { id: "farmer",  emoji: "🧑‍🌾", name: { en: "Farmer",  hy: "Ֆերմեր",  ru: "Фермер" } },
+          { id: "wolf",    emoji: "🐺",   name: { en: "Wolf",    hy: "Գայլ",    ru: "Волк" } },
+          { id: "goat",    emoji: "🐐",   name: { en: "Goat",    hy: "Այծ",     ru: "Коза" } },
+          { id: "cabbage", emoji: "🥬",   name: { en: "Cabbage", hy: "Կաղամբ",  ru: "Капуста" } }
+        ],
+        seats: 2,
+        canSail: function (load) {
+          if (!load.length) return "emptyBoat";
+          if (load.indexOf("farmer") === -1) return "needFarmer";
+          return null;
+        },
+        check: function (group) {
+          if (has(group, "farmer")) return null;
+          if (has(group, "wolf") && has(group, "goat")) return { msg: "wolfAte", victims: ["goat"] };
+          if (has(group, "goat") && has(group, "cabbage")) return { msg: "goatAte", victims: ["cabbage"] };
+          return null;
+        }
+      },
+      {
+        id: "raft",
+        level: "medium",
+        icon: "🐘🦛🐒",
+        title: { en: "The Little Raft", hy: "Փոքրիկ լաստը", ru: "Маленький плот" },
+        story: {
+          en: "The elephant, the hippo and two monkeys want to cross the river on a little raft.",
+          hy: "Փիղը, գետաձին և երկու կապիկ ուզում են փոքրիկ լաստով անցնել գետը։",
+          ru: "Слон, бегемот и две обезьянки хотят переплыть реку на маленьком плоту."
+        },
+        rules: [
+          { en: "⚖️ The raft can carry ●● at most.", hy: "⚖️ Լաստը կարող է տանել առավելագույնը ●●։", ru: "⚖️ Плот выдерживает не больше ●●." },
+          { en: "🐘 🦛 The elephant and the hippo are big: each one weighs ●●.", hy: "🐘 🦛 Փիղը և գետաձին մեծ են․ յուրաքանչյուրը կշռում է ●●։", ru: "🐘 🦛 Слон и бегемот большие: каждый весит ●●." },
+          { en: "🐒 A monkey is small: it weighs ●.", hy: "🐒 Կապիկը փոքր է․ այն կշռում է ●։", ru: "🐒 Обезьянка маленькая: она весит ●." },
+          { en: "🚣 Anyone can row, but the raft can't cross empty.", hy: "🚣 Ամեն մեկը կարող է թիավարել, բայց լաստը դատարկ չի լողա։", ru: "🚣 Грести может любой, но пустой плот не поплывёт." }
+        ],
+        chars: [
+          { id: "elephant", emoji: "🐘", size: "big",   weight: 2, name: { en: "Elephant", hy: "Փիղ",     ru: "Слон" } },
+          { id: "hippo",    emoji: "🦛", size: "big",   weight: 2, name: { en: "Hippo",    hy: "Գետաձի",  ru: "Бегемот" } },
+          { id: "monkey1",  emoji: "🐒", size: "small", weight: 1, name: { en: "Monkey",   hy: "Կապիկ",   ru: "Обезьянка" } },
+          { id: "monkey2",  emoji: "🐒", size: "small", weight: 1, name: { en: "Monkey",   hy: "Կապիկ",   ru: "Обезьянка" } }
+        ],
+        seats: 2,
+        maxWeight: 2,
+        canSail: function (load) { return load.length ? null : "emptyBoat"; },
+        check: function () { return null; }
+      },
+      {
+        id: "foxes",
+        level: "hard",
+        icon: "🐰🦊",
+        title: { en: "Bunnies and Foxes", hy: "Նապաստակներ և աղվեսներ", ru: "Зайчики и лисы" },
+        story: {
+          en: "Three bunnies and three foxes need to cross the river.",
+          hy: "Երեք նապաստակ և երեք աղվես պետք է անցնեն գետը։",
+          ru: "Трём зайчикам и трём лисам нужно переправиться через реку."
+        },
+        rules: [
+          { en: "🛶 The boat fits 2 animals. Anyone can row, but it can't cross empty.", hy: "🛶 Նավակում տեղավորվում է 2 կենդանի։ Ամեն մեկը կարող է թիավարել, բայց նավակը դատարկ չի լողա։", ru: "🛶 В лодке помещаются 2 зверя. Грести может любой, но пустая лодка не поплывёт." },
+          { en: "🦊 > 🐰 On each side, foxes must never outnumber the bunnies — or the bunnies get scared!", hy: "🦊 > 🐰 Ոչ մի ափին աղվեսները չպետք է նապաստակներից շատ լինեն, թե չէ նապաստակները կվախենան։", ru: "🦊 > 🐰 Ни на одном берегу лис не должно быть больше, чем зайчиков, — иначе зайчики испугаются!" },
+          { en: "🐰 If a side has no bunnies, any number of foxes can be there.", hy: "🐰 Եթե ափին նապաստակ չկա, աղվեսները կարող են լինել որքան ուզեն։", ru: "🐰 Если на берегу нет зайчиков, лис там может быть сколько угодно." }
+        ],
+        chars: [
+          { id: "bunny1", emoji: "🐰", name: { en: "Bunny", hy: "Նապաստակ", ru: "Зайчик" } },
+          { id: "bunny2", emoji: "🐰", name: { en: "Bunny", hy: "Նապաստակ", ru: "Зайчик" } },
+          { id: "bunny3", emoji: "🐰", name: { en: "Bunny", hy: "Նապաստակ", ru: "Зайчик" } },
+          { id: "fox1",   emoji: "🦊", name: { en: "Fox",   hy: "Աղվես",    ru: "Лиса" } },
+          { id: "fox2",   emoji: "🦊", name: { en: "Fox",   hy: "Աղվես",    ru: "Лиса" } },
+          { id: "fox3",   emoji: "🦊", name: { en: "Fox",   hy: "Աղվես",    ru: "Лиса" } }
+        ],
+        seats: 2,
+        canSail: function (load) { return load.length ? null : "emptyBoat"; },
+        check: function (group) {
+          var bunnies = group.filter(function (id) { return id.indexOf("bunny") === 0; });
+          var foxes = group.filter(function (id) { return id.indexOf("fox") === 0; });
+          if (bunnies.length && foxes.length > bunnies.length) return { msg: "foxesScared", victims: bunnies };
+          return null;
+        }
+      }
+    ];
+
+    var UI = {
+      allGames: { en: "All games", hy: "Բոլոր խաղերը", ru: "Все игры" },
+      settings: { en: "Settings", hy: "Կարգավորումներ", ru: "Настройки" },
+      language: { en: "Language", hy: "Լեզու", ru: "Язык" },
+      puzzle:   { en: "Puzzle", hy: "Գլուխկոտրուկ", ru: "Задачка" },
+      restartNote: {
+        en: "Changing the puzzle starts it from the beginning.",
+        hy: "Գլուխկոտրուկը փոխելիս այն կսկսվի սկզբից։",
+        ru: "При смене задачки она начнётся сначала."
+      },
+      goal: { en: "Get everyone across the river!", hy: "Բոլորին անցկացրո՛ւ գետի մյուս ափ։", ru: "Перевези всех на другой берег!" },
+      howTo: {
+        en: "Tap someone to put them in the boat, then tap ⛵ Sail.",
+        hy: "Սեղմի՛ր որևէ մեկին, որ նստի նավակ, հետո սեղմի՛ր ⛵ Լողալ։",
+        ru: "Нажми на героя, чтобы посадить его в лодку, потом нажми ⛵ Плыть."
+      },
+      startSide:  { en: "🏠 Start side", hy: "🏠 Այս ափը", ru: "🏠 Этот берег" },
+      finishSide: { en: "🏁 Other side", hy: "🏁 Մյուս ափը", ru: "🏁 Другой берег" },
+      crossings:  { en: "Crossings:", hy: "Անցումներ՝", ru: "Переправы:" },
+      fewest:     { en: "Fewest possible:", hy: "Նվազագույնը՝", ru: "Минимум:" },
+      sail:    { en: "⛵ Sail", hy: "⛵ Լողալ", ru: "⛵ Плыть" },
+      undo:    { en: "↩️ Undo", hy: "↩️ Հետ", ru: "↩️ Назад" },
+      tryAgain:{ en: "↩️ Go back one step", hy: "↩️ Մեկ քայլ հետ", ru: "↩️ На шаг назад" },
+      hint:    { en: "💡 Hint", hy: "💡 Հուշում", ru: "💡 Подсказка" },
+      restart: { en: "🔄 Start over", hy: "🔄 Սկսել նորից", ru: "🔄 Начать заново" },
+      boat:    { en: "Boat", hy: "Նավակ", ru: "Лодка" },
+      emptySeat: { en: "empty seat", hy: "ազատ տեղ", ru: "свободное место" },
+      inBoat:  { en: "in the boat", hy: "նավակում", ru: "в лодке" },
+      load:    { en: "Load", hy: "Բեռ", ru: "Груз" },
+
+      emptyBoat: {
+        en: "The boat can't sail empty — put someone in!",
+        hy: "Նավակը դատարկ չի լողա․ մեկին նստեցրո՛ւ։",
+        ru: "Пустая лодка не поплывёт — посади кого-нибудь!"
+      },
+      needFarmer: {
+        en: "Only the farmer can row — put the farmer in the boat!",
+        hy: "Նավակը վարում է միայն ֆերմերը․ նստեցրո՛ւ նրան նավակ։",
+        ru: "Грести умеет только фермер — посади его в лодку!"
+      },
+      boatFull: {
+        en: "The boat is full! Tap someone in the boat to get them off.",
+        hy: "Նավակը լիքն է։ Սեղմի՛ր նավակում նստածին, որ իջնի։",
+        ru: "Лодка полная! Нажми на того, кто в лодке, чтобы он вышел."
+      },
+      tooHeavy: {
+        en: "Too heavy! The raft would sink. 💦",
+        hy: "Շատ ծանր է։ Լաստը կսուզվի։ 💦",
+        ru: "Слишком тяжело! Плот утонет. 💦"
+      },
+      wrongSide: {
+        en: "The boat is on the other side!",
+        hy: "Նավակը մյուս ափին է։",
+        ru: "Лодка на другом берегу!"
+      },
+      wolfAte:  { en: "Oh no! The wolf ate the goat! 🐺", hy: "Վա՜յ, գայլը կերավ այծին։ 🐺", ru: "Ой! Волк съел козу! 🐺" },
+      goatAte:  { en: "Oh no! The goat ate the cabbage! 🐐", hy: "Վա՜յ, այծը կերավ կաղամբը։ 🐐", ru: "Ой! Коза съела капусту! 🐐" },
+      foxesScared: {
+        en: "Oh no! More foxes than bunnies — the bunnies got scared and ran away! 🐰💨",
+        hy: "Վա՜յ, աղվեսներն ավելի շատ էին, նապաստակները վախեցան և փախան։ 🐰💨",
+        ru: "Ой! Лис больше, чем зайчиков, — зайчики испугались и убежали! 🐰💨"
+      },
+      failTip: {
+        en: "Go back one step and try something else.",
+        hy: "Վերադարձի՛ր մեկ քայլ և փորձի՛ր այլ կերպ։",
+        ru: "Вернись на шаг назад и попробуй по-другому."
+      },
+      hintText: {
+        en: "Hint: next, send {who} in the boat.",
+        hy: "Հուշում․ հիմա նավակով թող գնան՝ {who}։",
+        ru: "Подсказка: сейчас пусть плывут: {who}."
+      },
+      good: {
+        en: ["Safe! 👍", "Good move! 👍", "Everyone is OK! 👍", "Nice thinking! 👍"],
+        hy: ["Բոլորն ապահով են։ 👍", "Լավ քայլ էր։ 👍", "Ամեն ինչ կարգին է։ 👍", "Ապրե՛ս, լավ մտածեցիր։ 👍"],
+        ru: ["Все в безопасности! 👍", "Хороший ход! 👍", "Все целы! 👍", "Отлично придумано! 👍"]
+      },
+      winTitle: { en: "Everyone made it across! 🎉", hy: "Բոլորն անցան գետը։ 🎉", ru: "Все на другом берегу! 🎉" },
+      winText: {
+        en: "You did it in {n} {w}. The fewest possible is {m}.",
+        hy: "Դու դա արեցիր {n} {w}։ Նվազագույնը {m} է։",
+        ru: "Ты справился за {n} {w}. Меньше всего можно за {m}."
+      },
+      crossWord: { en: ["crossing", "crossings"], hy: ["անցումով"], ru: ["переправу", "переправы", "переправ"] },
+      perfect: { en: "Perfect — the fewest crossings possible! 🏆", hy: "Կատարյալ է․ ամենաքիչ հնարավոր անցումներով։ 🏆", ru: "Идеально — меньше переправ не бывает! 🏆" },
+      playAgain: { en: "🔄 Play again", hy: "🔄 Խաղալ նորից", ru: "🔄 Сыграть ещё" },
+      nextPuzzle: { en: "Next puzzle →", hy: "Հաջորդ գլուխկոտրուկը →", ru: "Следующая задачка →" }
+    };
+    function t(key) { return S.tr(UI[key]); }
+    function has(list, id) { return list.indexOf(id) !== -1; }
+    function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
+    function esc(s) {
+      return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    /* ======================================================================
+       Puzzle logic (works for every puzzle above)
+       State: side[id] = 0 (start) or 1 (other side), boat = 0 | 1
+       ====================================================================== */
+
+    function charById(P, id) { return P.chars.filter(function (c) { return c.id === id; })[0]; }
+    function loadWeight(P, load) {
+      return load.reduce(function (sum, id) { return sum + (charById(P, id).weight || 1); }, 0);
+    }
+    function fits(P, load) {
+      if (load.length > P.seats) return false;
+      if (P.maxWeight && loadWeight(P, load) > P.maxWeight) return false;
+      return true;
+    }
+    /** First problem on either side, e.g. { msg, victims, bank }, or null. */
+    function problem(P, side) {
+      for (var b = 0; b < 2; b++) {
+        var group = P.chars.map(function (c) { return c.id; }).filter(function (id) { return side[id] === b; });
+        var p = P.check(group);
+        if (p) { p.bank = b; return p; }
+      }
+      return null;
+    }
+    function solved(P, side) { return P.chars.every(function (c) { return side[c.id] === 1; }); }
+    function stateKey(P, side, boat) { return P.chars.map(function (c) { return side[c.id]; }).join("") + boat; }
+
+    /** All boat loads that may sail from the boat's side. */
+    function loads(P, side, boat) {
+      var here = P.chars.map(function (c) { return c.id; }).filter(function (id) { return side[id] === boat; });
+      var out = [];
+      (function walk(start, cur) {
+        if (cur.length && fits(P, cur) && !P.canSail(cur)) out.push(cur.slice());
+        if (cur.length >= P.seats) return;
+        for (var i = start; i < here.length; i++) { cur.push(here[i]); walk(i + 1, cur); cur.pop(); }
+      })(0, []);
+      return out;
+    }
+
+    /** Shortest safe solution from this position (list of loads), or null. */
+    function solve(P, side, boat) {
+      var startKey = stateKey(P, side, boat);
+      var queue = [{ side: side, boat: boat, path: [] }];
+      var seen = {}; seen[startKey] = true;
+      while (queue.length) {
+        var node = queue.shift();
+        if (solved(P, node.side)) return node.path;
+        var options = loads(P, node.side, node.boat);
+        for (var i = 0; i < options.length; i++) {
+          var next = {};
+          for (var k in node.side) next[k] = node.side[k];
+          options[i].forEach(function (id) { next[id] = 1 - node.boat; });
+          if (problem(P, next)) continue;
+          var key = stateKey(P, next, 1 - node.boat);
+          if (seen[key]) continue;
+          seen[key] = true;
+          queue.push({ side: next, boat: 1 - node.boat, path: node.path.concat([options[i]]) });
+        }
+      }
+      return null;
+    }
+
+    /* ======================================================================
+       Game
+       ====================================================================== */
+
+    var catalog = window.LEARNING_GAMES || { themes: [], games: [] };
+    var game = catalog.games.filter(function (g) { return g.id === GAME_ID; })[0] ||
+      { title: { en: "River Crossing" }, icon: "⛵", theme: "logic" };
+    var theme = catalog.themes.filter(function (th) { return th.id === game.theme; })[0] ||
+      { color: "#12A594", soft: "#E1F6F3" };
+    var home = "../../index.html" + (game.theme ? "#" + game.theme : "");
+    var root = document.getElementById("game");
+
+    document.documentElement.style.setProperty("--c", theme.color);
+    document.documentElement.style.setProperty("--soft", theme.soft);
+
+    var lang, P, best, state, els = {};
+    var sailTimer = null;
+
+    function puzzleForLevel(level) {
+      return PUZZLES.filter(function (p) { return p.level === level; })[0] || PUZZLES[0];
+    }
+
+    function seg(attr, items, current) {
+      return '<div class="g-seg" role="group">' + items.map(function (it) {
+        var on = String(it.value) === String(current);
+        return '<button type="button" class="g-seg__btn' + (on ? " is-active" : "") + '" data-' + attr + '="' + it.value + '"' +
+          ' aria-pressed="' + on + '"' + (it.lang ? ' lang="' + it.lang + '"' : "") + ">" + it.label + "</button>";
+      }).join("") + "</div>";
+    }
+
+    /* ----- Page shell ----- */
+
+    function build(keepState) {
+      lang = S.get("lang");
+      var level = S.getLevel(GAME_ID);
+      var levelInfo = S.LEVELS.filter(function (l) { return l.id === level; })[0];
+      P = puzzleForLevel(level);
+      var title = S.tr(game.title);
+
+      document.documentElement.lang = lang;
+      document.title = title + " · Play & Learn";
+
+      root.innerHTML =
+        '<header class="g-top">' +
+          '<a class="g-back" href="' + home + '">' +
+            '<span aria-hidden="true">←</span> <span class="g-back__label">' + esc(t("allGames")) + "</span></a>" +
+          '<div class="g-title"><span aria-hidden="true">' + game.icon + "</span> " + esc(title) + "</div>" +
+          '<div class="g-right">' +
+            '<button class="g-gear" type="button" id="g-gear" aria-expanded="false" aria-controls="g-panel" title="' + esc(t("settings")) + '">' +
+              '<span aria-hidden="true">⚙️</span><span class="g-gear__lang">' + esc(S.langInfo(lang).label) + "</span>" +
+              '<span class="g-gear__level">' + levelInfo.icon + '<span class="g-gear__lvname"> ' + esc(S.tr(levelInfo.name)) + "</span></span>" +
+            "</button>" +
+          "</div>" +
+          '<div class="g-panel" id="g-panel" hidden>' +
+            '<div class="g-panel__row"><span class="g-panel__label">🌐 ' + esc(t("language")) + "</span>" +
+              seg("lang", S.LANGS.map(function (l) { return { value: l.id, label: esc(l.label), lang: l.id }; }), lang) +
+            "</div>" +
+            '<div class="g-panel__row"><span class="g-panel__label">🧩 ' + esc(t("puzzle")) + "</span>" +
+              seg("level", S.LEVELS.map(function (l) {
+                return { value: l.id, label: l.icon + "&nbsp;" + esc(S.tr(l.name)) };
+              }), level) +
+            "</div>" +
+            '<p class="g-panel__note">' + esc(t("restartNote")) + "</p>" +
+          "</div>" +
+        "</header>" +
+        '<main class="g-stage"><div class="g-card" id="g-card"></div></main>';
+
+      els.card = document.getElementById("g-card");
+      els.panel = document.getElementById("g-panel");
+      els.gear = document.getElementById("g-gear");
+
+      els.gear.addEventListener("click", function (e) { e.stopPropagation(); togglePanel(els.panel.hidden); });
+      els.panel.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var btn = e.target.closest("[data-lang],[data-level]");
+        if (!btn) return;
+        if (btn.hasAttribute("data-lang")) {
+          // Language only changes the words — keep the puzzle where it is.
+          S.set("lang", btn.getAttribute("data-lang"));
+          build(true);
+          togglePanel(true);
+          return;
+        }
+        choosePuzzle(btn.getAttribute("data-level"));
+        togglePanel(true);
+      });
+
+      best = solve(P, startSide(), 0).length;
+      if (!keepState || !state || state.puzzle !== P.id) newGame();
+      else render();
+    }
+
+    function choosePuzzle(level) {
+      S.setLevel(GAME_ID, level);
+      state = null;
+      build();
+    }
+
+    function togglePanel(open) {
+      if (!els.panel) return;
+      els.panel.hidden = !open;
+      els.gear.setAttribute("aria-expanded", String(open));
+    }
+    document.addEventListener("click", function () { togglePanel(false); });
+
+    function startSide() {
+      var side = {};
+      P.chars.forEach(function (c) { side[c.id] = 0; });
+      return side;
+    }
+
+    function newGame() {
+      stopSail();
+      state = {
+        puzzle: P.id,
+        side: startSide(),
+        boat: 0,
+        load: [],
+        crossings: 0,
+        history: [],
+        sailing: false,
+        fail: null,
+        won: false,
+        hint: null,
+        message: "",
+        msgClass: ""
+      };
+      render();
+    }
+
+    /* ----- Drawing ----- */
+
+    function render() {
+      if (state.won) { renderWin(); return; }
+
+      var tabs = PUZZLES.map(function (p) {
+        var lv = S.LEVELS.filter(function (l) { return l.id === p.level; })[0];
+        return '<button type="button" class="rc-tab' + (p.id === P.id ? " is-active" : "") + '" data-level="' + p.level + '"' +
+          ' aria-pressed="' + (p.id === P.id) + '">' +
+          '<span class="rc-tab__dot" aria-hidden="true">' + lv.icon + "</span>" +
+          '<span aria-hidden="true">' + p.icon + "</span> " + esc(S.tr(p.title)) + "</button>";
+      }).join("");
+
+      els.card.innerHTML =
+        '<div class="rc-tabs" id="rc-tabs">' + tabs + "</div>" +
+        '<div class="g-prompt"><h1 class="g-question">' + esc(t("goal")) + "</h1></div>" +
+        '<p class="rc-story">' + esc(S.tr(P.story)) + "</p>" +
+        '<ul class="rc-rules">' + P.rules.map(function (r) { return "<li>" + esc(S.tr(r)) + "</li>"; }).join("") + "</ul>" +
+        '<div class="rc-status">' +
+          '<span class="rc-pill">' + esc(t("crossings")) + ' <b id="rc-count">0</b></span>' +
+          '<span class="rc-pill">' + esc(t("fewest")) + " <b>" + best + "</b></span>" +
+        "</div>" +
+        '<div class="rc-scene" id="rc-scene">' +
+          '<div class="rc-bank rc-bank--top" id="rc-bank-0" data-bank="0"></div>' +
+          '<div class="rc-river"><button type="button" class="rc-boat" id="rc-boat"></button></div>' +
+          '<div class="rc-bank rc-bank--bottom" id="rc-bank-1" data-bank="1"></div>' +
+        "</div>" +
+        '<p class="g-feedback" id="rc-feedback" aria-live="polite">&nbsp;</p>' +
+        '<div class="rc-tools">' +
+          '<button type="button" class="rc-tool rc-tool--primary" id="rc-sail">' + esc(t("sail")) + "</button>" +
+          '<button type="button" class="rc-tool" id="rc-undo">' + esc(t("undo")) + "</button>" +
+          '<button type="button" class="rc-tool" id="rc-hint">' + esc(t("hint")) + "</button>" +
+          '<button type="button" class="rc-tool" id="rc-restart">' + esc(t("restart")) + "</button>" +
+        "</div>";
+
+      els.banks = [document.getElementById("rc-bank-0"), document.getElementById("rc-bank-1")];
+      els.boat = document.getElementById("rc-boat");
+      els.feedback = document.getElementById("rc-feedback");
+      els.count = document.getElementById("rc-count");
+      els.sail = document.getElementById("rc-sail");
+      els.undo = document.getElementById("rc-undo");
+      els.hint = document.getElementById("rc-hint");
+
+      document.getElementById("rc-tabs").addEventListener("click", function (e) {
+        var tab = e.target.closest("[data-level]");
+        if (tab) choosePuzzle(tab.getAttribute("data-level"));
+      });
+      document.getElementById("rc-scene").addEventListener("click", onSceneClick);
+      els.sail.addEventListener("click", sail);
+      els.undo.addEventListener("click", undo);
+      els.hint.addEventListener("click", showHint);
+      document.getElementById("rc-restart").addEventListener("click", newGame);
+
+      paint();
+    }
+
+    function charButton(c, where) {
+      var cls = "rc-char" + (c.size ? " rc-char--" + c.size : "");
+      if (state.hint && has(state.hint, c.id)) cls += " is-hint";
+      if (state.fail && has(state.fail.victims, c.id) && where === "bank") cls += " is-victim";
+      if (where === "bank" && state.side[c.id] !== state.boat) cls += " is-far";
+      var label = S.tr(c.name) + (where === "boat" ? ", " + t("inBoat") : "");
+      return '<button type="button" class="' + cls + '" data-id="' + c.id + '" aria-label="' + esc(label) + '"' +
+        (state.sailing || state.fail ? " disabled" : "") + ">" +
+        '<span class="rc-char__emoji" aria-hidden="true">' + c.emoji + "</span>" +
+        '<span class="rc-char__name" aria-hidden="true">' + esc(S.tr(c.name)) + "</span>" +
+        (c.weight ? '<span class="rc-char__w" aria-hidden="true">' + dots(c.weight) + "</span>" : "") +
+        "</button>";
+    }
+    function dots(n) { return new Array(n + 1).join("●"); }
+
+    function paint() {
+      var waiting = P.chars.filter(function (c) { return !has(state.load, c.id); });
+      for (var b = 0; b < 2; b++) {
+        var bank = els.banks[b];
+        bank.className = "rc-bank rc-bank--" + (b === 0 ? "top" : "bottom") +
+          (state.boat === b && !state.sailing ? " is-boat" : "") +
+          (state.fail && state.fail.bank === b ? " is-fail" : "");
+        bank.innerHTML = '<span class="rc-bank__label">' + esc(t(b === 0 ? "startSide" : "finishSide")) + "</span>" +
+          waiting.filter(function (c) { return state.side[c.id] === b; }).map(function (c) { return charButton(c, "bank"); }).join("");
+      }
+
+      // Boat: passengers + empty seats, and a weight meter on the raft puzzle.
+      var inside = state.load.map(function (id) { return charButton(charById(P, id), "boat"); }).join("");
+      var free = P.maxWeight ? Math.max(0, P.maxWeight - loadWeight(P, state.load)) : P.seats - state.load.length;
+      if (P.maxWeight) free = Math.min(free, P.seats - state.load.length);
+      for (var s = 0; s < free; s++) inside += '<span class="rc-seat" aria-hidden="true">＋</span>';
+      if (P.maxWeight) {
+        var w = loadWeight(P, state.load);
+        inside += '<span class="rc-load' + (w >= P.maxWeight ? " is-full" : "") + '">⚖️ ' +
+          dots(w) + new Array(P.maxWeight - w + 1).join("○") + "</span>";
+      }
+      els.boat.innerHTML = inside;
+      els.boat.classList.toggle("at-1", state.boat === 1);
+      els.boat.classList.toggle("is-sailing", state.sailing);
+      els.boat.setAttribute("aria-label", t("boat") + ": " +
+        (state.load.length ? state.load.map(function (id) { return S.tr(charById(P, id).name); }).join(", ") : t("emptySeat")));
+
+      els.count.textContent = state.crossings;
+      els.sail.disabled = state.sailing || !!state.fail;
+      els.undo.disabled = state.sailing || !state.history.length;
+      els.undo.textContent = state.fail ? t("tryAgain") : t("undo");
+      els.undo.classList.toggle("rc-tool--primary", !!state.fail);
+      els.sail.hidden = !!state.fail;
+      els.hint.disabled = state.sailing || !!state.fail;
+
+      var msg = state.message || (state.crossings === 0 && !state.load.length ? t("howTo") : "");
+      els.feedback.className = "g-feedback" + (state.msgClass ? " " + state.msgClass : "");
+      els.feedback.textContent = msg || " ";
+    }
+
+    function say(key, cls) {
+      state.message = typeof key === "string" && UI[key] ? t(key) : key;
+      state.msgClass = cls || "";
+    }
+
+    /* ----- Actions ----- */
+
+    function onSceneClick(e) {
+      if (state.sailing || state.fail) return;
+      var btn = e.target.closest(".rc-char");
+      if (!btn) {
+        if (e.target.closest(".rc-boat")) sail();
+        return;
+      }
+      e.stopPropagation();
+      var id = btn.getAttribute("data-id");
+      state.message = "";
+      state.msgClass = "";
+
+      if (has(state.load, id)) {
+        state.load = state.load.filter(function (x) { return x !== id; });   // get off
+      } else if (state.side[id] !== state.boat) {
+        say("wrongSide", "is-timeup");
+        bump();
+      } else {
+        var next = state.load.concat([id]);
+        if (fits(P, next)) {
+          state.load = next;
+        } else if (state.load.length >= P.seats) {
+          say("boatFull", "is-timeup");
+          bump();
+        } else {
+          say("tooHeavy", "is-timeup");
+          bump();
+        }
+      }
+      paint();
+    }
+
+    function bump() {
+      setTimeout(function () {
+        if (!els.boat) return;
+        els.boat.classList.remove("is-bump");
+        void els.boat.offsetWidth;
+        els.boat.classList.add("is-bump");
+      }, 0);
+    }
+
+    function sail() {
+      if (state.sailing || state.fail || state.won) return;
+      var err = P.canSail(state.load);
+      if (err) { say(err, "is-timeup"); paint(); bump(); return; }
+
+      state.history.push({ side: copy(state.side), boat: state.boat, load: state.load.slice(), crossings: state.crossings });
+      state.sailing = true;
+      state.hint = null;
+      state.message = "";
+      state.msgClass = "";
+      var to = 1 - state.boat;
+      paint();
+      // Start the trip on the next frame so the boat glides across.
+      requestAnimationFrame(function () {
+        els.boat.classList.toggle("at-1", to === 1);
+        sailTimer = setTimeout(function () { arrive(to); }, 1150);
+      });
+    }
+
+    function arrive(to) {
+      sailTimer = null;
+      state.load.forEach(function (id) { state.side[id] = to; });
+      state.boat = to;
+      state.load = [];
+      state.sailing = false;
+      state.crossings++;
+
+      var p = problem(P, state.side);
+      if (p) {
+        state.fail = p;
+        say(t(p.msg) + " " + t("failTip"), "is-wrong");
+        paint();
+        els.undo.focus({ preventScroll: true });
+        return;
+      }
+      if (solved(P, state.side)) {
+        state.won = true;
+        paint();
+        els.banks[1].classList.add("is-goal");
+        setTimeout(renderWin, 900);
+        return;
+      }
+      say(pick(t("good")), "is-right");
+      paint();
+    }
+
+    function undo() {
+      if (state.sailing || !state.history.length) return;
+      var prev = state.history.pop();
+      state.side = prev.side;
+      state.boat = prev.boat;
+      state.load = prev.load;
+      state.crossings = prev.crossings;
+      state.fail = null;
+      state.hint = null;
+      state.message = "";
+      state.msgClass = "";
+      paint();
+    }
+
+    function showHint() {
+      if (state.sailing || state.fail) return;
+      var path = solve(P, state.side, state.boat);
+      if (!path || !path.length) return;
+      var next = path[0];
+      // Prefer showing the passengers already in the boat if they are part of the answer.
+      state.hint = next;
+      var who = next.map(function (id) { return charById(P, id).emoji; }).join(" + ");
+      say(t("hintText").replace("{who}", who), "");
+      paint();
+    }
+
+    function stopSail() { if (sailTimer) clearTimeout(sailTimer); sailTimer = null; }
+    function copy(o) { var r = {}; for (var k in o) r[k] = o[k]; return r; }
+
+    /* ----- Win screen ----- */
+
+    function renderWin() {
+      var n = state.crossings;
+      var stars = n <= best ? 3 : n <= best + 4 ? 2 : 1;
+      var idx = PUZZLES.indexOf(P);
+      var next = PUZZLES[idx + 1];
+      var starHtml = "";
+      for (var i = 0; i < 3; i++) {
+        starHtml += '<span class="g-star' + (i < stars ? " is-on" : "") + '" style="animation-delay:' + (i * 0.15) + 's">★</span>';
+      }
+      els.card.innerHTML =
+        '<div class="g-end">' +
+          '<div class="g-stars" aria-label="' + stars + ' / 3">' + starHtml + "</div>" +
+          '<h2 class="g-end__title">' + esc(t("winTitle")) + "</h2>" +
+          '<p class="g-end__score">' + esc(t("winText")
+            .replace("{n}", n).replace("{w}", S.plural(n, UI.crossWord)).replace("{m}", best)) + "</p>" +
+          (n <= best ? '<p class="rc-end__note">' + esc(t("perfect")) + "</p>" : "") +
+          '<div class="g-end__actions">' +
+            '<button type="button" class="g-btn" id="rc-again">' + esc(t("playAgain")) + "</button>" +
+            (next ? '<button type="button" class="g-btn g-btn--primary" id="rc-next">' + esc(t("nextPuzzle")) + "</button>" : "") +
+            '<a class="g-btn" href="' + home + '">' + esc(t("allGames")) + "</a>" +
+          "</div>" +
+        "</div>";
+      document.getElementById("rc-again").addEventListener("click", newGame);
+      if (next) document.getElementById("rc-next").addEventListener("click", function () { choosePuzzle(next.level); });
+    }
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") togglePanel(false);
+    });
+
+    build();
+  })();
+  </script>
+</body>
+</html>

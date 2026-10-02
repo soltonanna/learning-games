@@ -213,6 +213,19 @@ window.LEARNING_GAMES = {
       }
     },
     {
+      id: "river-crossing",
+      theme: "logic",
+      icon: "⛵",
+      ages: "6+",
+      url: "games/river-crossing/index.html",
+      title: { en: "River Crossing", hy: "Գետանցում", ru: "Переправа через реку" },
+      description: {
+        en: "Get the wolf, the goat and the cabbage across the river — without anyone being eaten! 3 puzzles.",
+        hy: "Գայլին, այծին և կաղամբը անցկացրո՛ւ գետը այնպես, որ ոչ ոք չուտվի։ 3 գլուխկոտրուկ։",
+        ru: "Перевези волка, козу и капусту через реку так, чтобы никого не съели! 3 задачки."
+      }
+    },
+    {
       id: "color-mixer",
       theme: "art",
       icon: "🎨",
