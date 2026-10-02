@@ -1,0 +1,909 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Repeat the Rhythm · Play &amp; Learn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700;800&family=Noto+Sans+Armenian:wght@500;600;700;800&display=swap">
+  <link rel="stylesheet" href="../shared/game.css">
+  <style>
+    /* ---------- Stats row ---------- */
+    .rr-stats {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .rr-stat {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: var(--soft);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 17px;
+      line-height: 1.2;
+    }
+    .rr-stat b { font-weight: 800; font-variant-numeric: tabular-nums; }
+    .rr-hearts { letter-spacing: 2px; }
+
+    /* ---------- Prompt ---------- */
+    .rr-prompt {
+      margin: 14px 0 2px;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 30px;
+      line-height: 1.2;
+      text-align: center;
+    }
+    .rr-sub {
+      min-height: 1.4em;
+      margin: 0;
+      color: var(--ink-soft);
+      font-weight: 600;
+      font-size: 16px;
+      text-align: center;
+    }
+
+    /* ---------- Rhythm strip: the pattern (👂) and the child's taps (👆) ---------- */
+    .rr-strip {
+      margin: 14px 0 0;
+      padding: 8px 10px;
+      border-radius: 22px;
+      background: var(--soft);
+    }
+    .rr-row {
+      display: grid;
+      grid-template-columns: 30px 1fr;
+      align-items: center;
+      height: 54px;
+    }
+    .rr-row__icon { font-size: 22px; text-align: center; }
+    .rr-track { position: relative; height: 100%; margin: 0 24px; }
+    .rr-track::before {
+      content: "";
+      position: absolute;
+      left: -14px;
+      right: -14px;
+      top: 50%;
+      height: 4px;
+      margin-top: -2px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, .9);
+    }
+    .rr-dot {
+      position: absolute;
+      top: 50%;
+      left: var(--x);
+      width: 42px;
+      height: 42px;
+      margin: -21px 0 0 -21px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--pc);
+      border-bottom: 4px solid color-mix(in srgb, var(--pc) 70%, #000);
+      font-size: 20px;
+      line-height: 1;
+      opacity: .28;
+      transition: opacity .15s ease, left .35s ease;
+    }
+    .rr-dot.is-on { opacity: 1; }
+    .rr-dot.is-hit { opacity: 1; animation: rr-hit .35s ease; }
+    .rr-dot--you { opacity: 1; animation: rr-hit .3s ease; }
+    .rr-dot.is-ok { box-shadow: 0 0 0 4px #fff, 0 0 0 7px var(--right); }
+    .rr-dot.is-bad { box-shadow: 0 0 0 4px #fff, 0 0 0 7px var(--wrong); }
+
+    /* ---------- Instrument pads ---------- */
+    .rr-pads {
+      display: grid;
+      grid-template-columns: repeat(var(--n), 1fr);
+      gap: 14px;
+      max-width: calc(var(--n) * 180px);
+      margin: 20px auto 0;
+      touch-action: manipulation;
+    }
+    .rr-pads[data-n="1"] { max-width: 210px; }
+    .rr-pads.is-listening { pointer-events: none; }
+
+    .rr-pad {
+      position: relative;
+      aspect-ratio: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 8px;
+      border: 0;
+      border-bottom: 8px solid color-mix(in srgb, var(--pc) 68%, #000);
+      border-radius: 28px;
+      background: var(--pc);
+      color: #fff;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform .08s ease, filter .08s ease, border-bottom-width .08s ease, box-shadow .15s ease;
+    }
+    .rr-pad__icon { font-size: clamp(42px, 11vw, 64px); line-height: 1; }
+    .rr-pad__name {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 17px;
+      line-height: 1.1;
+      text-shadow: 0 1px 0 rgba(0, 0, 0, .15);
+    }
+    .rr-pad__key {
+      position: absolute;
+      top: 8px;
+      left: 12px;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 14px;
+      opacity: .7;
+      display: none;
+    }
+    @media (hover: hover) and (pointer: fine) { .rr-pad__key { display: block; } }
+    .rr-pad:focus-visible { outline: 4px solid var(--ink); outline-offset: 3px; }
+    .rr-pad.is-hit, .rr-pad.is-lit {
+      transform: translateY(5px) scale(.97);
+      border-bottom-width: 3px;
+      filter: brightness(1.15);
+      box-shadow: 0 0 0 7px color-mix(in srgb, var(--pc) 30%, transparent);
+    }
+    .rr-pad.is-wrong { background: var(--wrong); border-bottom-color: #B8324D; animation: g-shake .4s ease; }
+    .rr-pad.is-new::after {
+      content: "★";
+      position: absolute;
+      top: -10px;
+      right: -6px;
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #FFC531;
+      color: #fff;
+      font-size: 18px;
+      animation: rr-hit .6s ease 2;
+    }
+    .rr-pads.is-happy .rr-pad { animation: rr-jump .5s ease; }
+    .rr-pads.is-happy .rr-pad:nth-child(2) { animation-delay: .07s; }
+    .rr-pads.is-happy .rr-pad:nth-child(3) { animation-delay: .14s; }
+    .rr-pads.is-happy .rr-pad:nth-child(4) { animation-delay: .21s; }
+
+    /* ---------- Buttons under the pads ---------- */
+    .rr-actions {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      min-height: 56px;
+      margin-top: 6px;
+    }
+
+    /* ---------- Start screen ---------- */
+    .rr-intro { padding: 10px 0 6px; text-align: center; }
+    .rr-intro__icon { font-size: 72px; line-height: 1; }
+    .rr-intro__title { margin: 12px 0 6px; font-family: var(--font-display); font-weight: 800; font-size: 32px; }
+    .rr-intro__rules { max-width: 460px; margin: 0 auto 22px; color: var(--ink-soft); font-weight: 600; font-size: 17px; }
+
+    .rr-lv { line-height: 1.1; }
+    .rr-lv small { display: block; font-size: 12px; font-weight: 600; opacity: .8; line-height: 1; }
+
+    @keyframes rr-hit { 0% { transform: scale(.6); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
+    @keyframes rr-jump { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-14px); } }
+
+    @media (max-width: 560px) {
+      .rr-pads[data-n="4"] { grid-template-columns: repeat(2, 1fr); max-width: 330px; }
+      .rr-pads[data-n="3"] { gap: 10px; }
+      .rr-pads[data-n="3"] .rr-pad__name { font-size: 14px; }
+      .rr-prompt { font-size: 24px; }
+      .rr-sub { font-size: 14px; }
+      .rr-stat { font-size: 15px; padding: 5px 11px; }
+      .rr-dot { width: 34px; height: 34px; margin: -17px 0 0 -17px; font-size: 16px; }
+      .rr-track { margin: 0 18px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .rr-dot, .rr-dot--you, .rr-dot.is-hit, .rr-pads.is-happy .rr-pad, .rr-pad.is-new::after { animation: none; transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+
+  <script src="../../js/settings.js"></script>
+  <script src="../../js/games-data.js"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    var S = window.PlaySettings;
+    var GAME_ID = "repeat-rhythm";
+
+    /**
+     * INSTRUMENTS — the pads. Sounds are made in the browser (no audio files).
+     * New pads join as the levels go up, in this order.
+     */
+    var PADS = [
+      { id: "drum",  icon: "🥁", color: "#FF7A30", name: { en: "Drum",  hy: "Թմբուկ",    ru: "Барабан" } },
+      { id: "clap",  icon: "👏", color: "#7C5CFF", name: { en: "Clap",  hy: "Ծափ",       ru: "Хлопок" } },
+      { id: "bell",  icon: "🔔", color: "#169BDB", name: { en: "Bell",  hy: "Զանգակ",    ru: "Колокольчик" } },
+      { id: "piano", icon: "🎹", color: "#1FAA6B", name: { en: "Piano", hy: "Դաշնամուր", ru: "Пианино" } }
+    ];
+
+    /**
+     * THE 10 STEPS of one game — each one a little harder.
+     *   pads   how many instruments are in play
+     *   notes  how many beats the rhythm has
+     *   durs   gaps between beats, in beats: 0.5 = quick, 1 = normal, 2 = long
+     */
+    var STEPS = [
+      { pads: 1, notes: 3, durs: [1] },
+      { pads: 1, notes: 4, durs: [1, 2] },
+      { pads: 1, notes: 4, durs: [0.5, 1] },
+      { pads: 2, notes: 3, durs: [1] },
+      { pads: 2, notes: 4, durs: [1, 2] },
+      { pads: 2, notes: 5, durs: [0.5, 1] },
+      { pads: 3, notes: 5, durs: [0.5, 1] },
+      { pads: 3, notes: 6, durs: [0.5, 1, 2] },
+      { pads: 4, notes: 6, durs: [0.5, 1] },
+      { pads: 4, notes: 7, durs: [0.5, 1, 2] }
+    ];
+
+    /**
+     * Difficulty (⚙️):
+     *   bpm    speed of the first step (it gets a little faster every step)
+     *   tol    how exact the gaps must be (bigger = kinder)
+     *   tempo  how much slower/faster than the original the child may play
+     */
+    var LEVEL_SETUP = {
+      easy:   { bpm: 76,  tol: 0.36, tempo: [0.45, 2.4] },
+      medium: { bpm: 90,  tol: 0.28, tempo: [0.55, 1.8] },
+      hard:   { bpm: 106, tol: 0.21, tempo: [0.65, 1.55] }
+    };
+
+    var HEARTS = 3;
+
+    var UI = {
+      allGames: { en: "All games", hy: "Բոլոր խաղերը", ru: "Все игры" },
+      settings: { en: "Settings", hy: "Կարգավորումներ", ru: "Настройки" },
+      language: { en: "Language", hy: "Լեզու", ru: "Язык" },
+      level:    { en: "Difficulty", hy: "Բարդություն", ru: "Сложность" },
+      lvEasy:   { en: "slow", hy: "դանդաղ", ru: "медленно" },
+      lvMedium: { en: "faster", hy: "ավելի արագ", ru: "быстрее" },
+      lvHard:   { en: "fast & exact", hy: "արագ և ճշգրիտ", ru: "быстро и точно" },
+      restartNote: {
+        en: "Changing the difficulty starts a new game.",
+        hy: "Բարդությունը փոխելիս նոր խաղ կսկսվի։",
+        ru: "После изменения сложности начнётся новая игра."
+      },
+      introTitle: { en: "Repeat the Rhythm!", hy: "Կրկնի՛ր ռիթմը։", ru: "Повтори ритм!" },
+      introRules: {
+        en: "Listen to the rhythm, then tap the same instruments — with the same quick and long gaps. Every level is a little harder!",
+        hy: "Լսի՛ր ռիթմը, հետո սեղմի՛ր նույն գործիքները՝ նույն արագ և երկար դադարներով։ Ամեն մակարդակ մի քիչ ավելի բարդ է։",
+        ru: "Послушай ритм, а потом нажимай те же инструменты — с такими же быстрыми и долгими паузами. Каждый уровень чуть сложнее!"
+      },
+      start:     { en: "Start", hy: "Սկսել", ru: "Начать" },
+      soundHint: {
+        en: "🔊 Turn the sound on!",
+        hy: "🔊 Միացրո՛ւ ձայնը։",
+        ru: "🔊 Включи звук!"
+      },
+      levelN:    { en: "Level", hy: "Մակարդակ", ru: "Уровень" },
+      ready:     { en: "Ready? Listen first!", hy: "Պատրա՞ստ ես։ Նախ լսի՛ր։", ru: "Готов? Сначала послушай!" },
+      readySub:  { en: "Press ▶ to hear the rhythm.", hy: "Սեղմի՛ր ▶՝ ռիթմը լսելու համար։", ru: "Нажми ▶, чтобы услышать ритм." },
+      listen:    { en: "Listen… 👂", hy: "Լսի՛ր… 👂", ru: "Слушай… 👂" },
+      listenSub: { en: "Watch the dots: some gaps are quick, some are long.", hy: "Նայի՛ր կետերին․ որոշ դադարներ արագ են, որոշները՝ երկար։", ru: "Смотри на точки: какие-то паузы быстрые, какие-то долгие." },
+      play:      { en: "Your turn! 👆", hy: "Քո հերթն է։ 👆", ru: "Твоя очередь! 👆" },
+      playSub:   { en: "Tap the same pads with the same rhythm.", hy: "Սեղմի՛ր նույն գործիքները նույն ռիթմով։", ru: "Нажимай те же кнопки в том же ритме." },
+      listenBtn: { en: "Listen", hy: "Լսել", ru: "Слушать" },
+      againBtn:  { en: "Listen again", hy: "Լսել նորից", ru: "Послушать ещё" },
+      retryBtn:  { en: "Try again", hy: "Նորից փորձել", ru: "Ещё раз" },
+      newSound:  { en: "New sound: {s}!", hy: "Նոր ձայն՝ {s}։", ru: "Новый звук: {s}!" },
+      praise: {
+        en: ["Great rhythm!", "Perfect!", "You've got the beat!", "Super!", "Well done!"],
+        hy: ["Հիանալի ռիթմ։", "Կատարյալ է։", "Դու բռնեցիր ռիթմը։", "Սուպեր։", "Ապրե՛ս։"],
+        ru: ["Отличный ритм!", "Идеально!", "Ты поймал ритм!", "Супер!", "Молодец!"]
+      },
+      oops:      { en: "Oops!", hy: "Վա՜յ։", ru: "Ой!" },
+      almost:    { en: "Almost!", hy: "Գրեթե։", ru: "Почти!" },
+      wrongPad:  { en: "That was a different sound. Listen again!", hy: "Դա ուրիշ ձայն էր։ Լսի՛ր նորից։", ru: "Это был другой звук. Послушай ещё раз!" },
+      wrongGap:  {
+        en: "Listen to the quick and long gaps — the red dots were off.",
+        hy: "Ուշադրություն դարձրու արագ և երկար դադարներին․ կարմիր կետերը սխալ էին։",
+        ru: "Слушай быстрые и долгие паузы — красные точки не совпали."
+      },
+      tooFast:   { en: "A bit too fast — follow the beat.", hy: "Մի քիչ շատ արագ էր․ հետևի՛ր ռիթմին։", ru: "Чуть слишком быстро — держи темп." },
+      tooSlow:   { en: "A bit too slow — keep the beat going.", hy: "Մի քիչ շատ դանդաղ էր․ պահի՛ր ռիթմը։", ru: "Чуть слишком медленно — держи темп." },
+      end3: { en: "You're a rhythm star!", hy: "Դու ռիթմի աստղ ես։", ru: "Ты звезда ритма!" },
+      end2: { en: "Great drumming!", hy: "Հրաշալի նվագեցիր։", ru: "Отлично сыграно!" },
+      end1: { en: "All levels done!", hy: "Բոլոր մակարդակներն անցար։", ru: "Все уровни пройдены!" },
+      endLose: { en: "Good try!", hy: "Լավ փորձ էր։", ru: "Хорошая попытка!" },
+      endWinScore: {
+        en: "All <b>{n}</b> rhythms repeated · <b>{h}</b> of 3 hearts left",
+        hy: "Կրկնեցիր բոլոր <b>{n}</b> ռիթմերը · մնաց <b>{h}</b> սիրտ 3-ից",
+        ru: "Повторено все <b>{n}</b> ритмов · осталось <b>{h}</b> из 3 сердец"
+      },
+      endLoseScore: {
+        en: "You reached level <b>{l}</b> of {n}. Practice makes perfect!",
+        hy: "Հասար <b>{l}</b>-րդ մակարդակին {n}-ից։ Փորձիր նորից։",
+        ru: "Ты дошёл до уровня <b>{l}</b> из {n}. Попробуй ещё!"
+      },
+      stars:     { en: "{n} out of 3 stars", hy: "{n} աստղ 3-ից", ru: "{n} из 3 звёзд" },
+      nextLevel: { en: "Faster: {l}", hy: "Ավելի արագ՝ {l}", ru: "Быстрее: {l}" },
+      again:     { en: "Play again", hy: "Նորից խաղալ", ru: "Играть снова" },
+      more:      { en: "More games", hy: "Այլ խաղեր", ru: "Другие игры" },
+      noAudio: {
+        en: "Sorry, this browser can't play sounds.",
+        hy: "Ներողություն, այս դիտարկիչը չի կարող ձայն նվագել։",
+        ru: "К сожалению, этот браузер не умеет играть звуки."
+      }
+    };
+
+    function t(key) { return S.tr(UI[key]); }
+    function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
+    function esc(s) {
+      return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    /* ======================================================================
+       Sounds (Web Audio — made from simple waves, no files to load)
+       ====================================================================== */
+
+    var AudioCtx = window.AudioContext || window.webkitAudioContext;
+    var ctx = null, master = null, noiseBuf = null;
+
+    function ensureAudio() {
+      if (!AudioCtx) return null;
+      if (!ctx) {
+        try {
+          ctx = new AudioCtx();
+          master = ctx.createGain();
+          master.gain.value = 0.8;
+          master.connect(ctx.destination);
+          noiseBuf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.4), ctx.sampleRate);
+          var data = noiseBuf.getChannelData(0);
+          for (var i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+        } catch (e) { ctx = null; return null; }
+      }
+      if (ctx.state === "suspended") { try { ctx.resume(); } catch (e) { /* ignore */ } }
+      return ctx;
+    }
+
+    function env(gainNode, t0, peak, decay) {
+      gainNode.gain.setValueAtTime(0.0001, t0);
+      gainNode.gain.exponentialRampToValueAtTime(peak, t0 + 0.005);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, t0 + decay);
+    }
+
+    function tone(type, freq, t0, peak, decay, freqEnd) {
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(freq, t0);
+      if (freqEnd) o.frequency.exponentialRampToValueAtTime(freqEnd, t0 + decay * 0.7);
+      env(g, t0, peak, decay);
+      o.connect(g); g.connect(master);
+      o.start(t0); o.stop(t0 + decay + 0.05);
+    }
+
+    function noise(t0, peak, decay, filterFreq) {
+      var src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      src.buffer = noiseBuf;
+      f.type = "bandpass"; f.frequency.value = filterFreq; f.Q.value = 0.9;
+      env(g, t0, peak, decay);
+      src.connect(f); f.connect(g); g.connect(master);
+      src.start(t0); src.stop(t0 + decay + 0.05);
+    }
+
+    function playSound(padIndex) {
+      if (!ensureAudio()) return;
+      var t0 = ctx.currentTime + 0.005;
+      switch (PADS[padIndex].id) {
+        case "drum":
+          tone("sine", 170, t0, 1.0, 0.42, 52);
+          noise(t0, 0.25, 0.05, 900);
+          break;
+        case "clap":
+          noise(t0, 0.9, 0.05, 1600);
+          noise(t0 + 0.012, 0.8, 0.06, 1500);
+          noise(t0 + 0.025, 0.7, 0.2, 1400);
+          break;
+        case "bell":
+          tone("sine", 1318.5, t0, 0.45, 1.1);
+          tone("sine", 3296, t0, 0.12, 0.5);
+          tone("triangle", 659.3, t0, 0.15, 0.8);
+          break;
+        case "piano":
+          tone("triangle", 523.25, t0, 0.55, 0.9);
+          tone("sine", 1046.5, t0, 0.18, 0.6);
+          tone("sine", 261.6, t0, 0.15, 0.7);
+          break;
+      }
+    }
+
+    /* ======================================================================
+       Rhythm patterns
+       ====================================================================== */
+
+    var lastKey = "";
+
+    /** A pattern is a list of notes: { pad, dur } — dur = beats until the next note. */
+    function makePattern(stepIndex) {
+      var cfg = STEPS[stepIndex];
+      for (var tries = 0; tries < 200; tries++) {
+        var notes = [], quickRun = 0;
+        for (var i = 0; i < cfg.notes; i++) {
+          var dur = i === cfg.notes - 1 ? 1 : pick(cfg.durs);
+          quickRun = dur === 0.5 ? quickRun + 1 : 0;
+          notes.push({ pad: Math.floor(Math.random() * cfg.pads), dur: dur });
+          if (quickRun > 2) break;                      // no more than 2 quick gaps in a row
+        }
+        if (notes.length !== cfg.notes) continue;
+
+        var gaps = notes.slice(0, -1).map(function (n) { return n.dur; });
+        var gapKinds = gaps.filter(function (d, k) { return gaps.indexOf(d) === k; }).length;
+        if (cfg.durs.length > 1 && gapKinds < 2) continue;  // must have a real rhythm
+
+        var used = notes.map(function (n) { return n.pad; })
+          .filter(function (p, k, a) { return a.indexOf(p) === k; }).length;
+        if (cfg.pads > 1 && used < Math.min(cfg.pads, 3)) continue;
+        // The newest instrument should be heard in its first level.
+        if (cfg.pads > 1 && stepIndex > 0 && STEPS[stepIndex - 1].pads < cfg.pads &&
+            !notes.some(function (n) { return n.pad === cfg.pads - 1; })) continue;
+
+        var key = notes.map(function (n) { return n.pad + ":" + n.dur; }).join(",");
+        if (key === lastKey) continue;
+        lastKey = key;
+        return notes;
+      }
+      lastKey = "";
+      return [{ pad: 0, dur: 1 }, { pad: 0, dur: 1 }, { pad: 0, dur: 1 }];
+    }
+
+    /** Beat position of every note (0 for the first one). */
+    function onsets(pattern) {
+      var x = 0;
+      return pattern.map(function (n) { var at = x; x += n.dur; return at; });
+    }
+
+    /**
+     * Compare the child's taps with the pattern.
+     * The child may play a bit slower or faster overall, so we first find their
+     * own speed, then check that each gap has the right length for that speed.
+     */
+    function judge(pattern, taps, setup, msPerBeat) {
+      var ratios = [];
+      for (var i = 0; i < pattern.length - 1; i++) {
+        var played = Math.max(taps[i + 1].t - taps[i].t, 1);
+        ratios.push(played / (pattern[i].dur * msPerBeat));
+      }
+      var logSum = ratios.reduce(function (s, r) { return s + Math.log(r); }, 0);
+      var scale = Math.exp(logSum / ratios.length);       // child's speed vs. original
+      var gapOk = ratios.map(function (r) { return Math.abs(Math.log(r / scale)) <= setup.tol; });
+
+      // Where each tap lands on the strip, in the pattern's beats.
+      var xs = [0], x = 0;
+      for (var k = 0; k < ratios.length; k++) {
+        x += ratios[k] / scale * pattern[k].dur;
+        xs.push(x);
+      }
+      // A dot is fine if the gaps on both of its sides are fine.
+      var dotOk = xs.map(function (_, k) {
+        return (k === 0 || gapOk[k - 1]) && (k === gapOk.length || gapOk[k]);
+      });
+
+      var tempo = scale < setup.tempo[0] ? "fast" : scale > setup.tempo[1] ? "slow" : "ok";
+      return {
+        ok: tempo === "ok" && gapOk.every(Boolean),
+        tempo: tempo,
+        xs: xs,
+        dotOk: dotOk
+      };
+    }
+
+    /* ======================================================================
+       Game
+       ====================================================================== */
+
+    var catalog = window.LEARNING_GAMES || { themes: [], games: [] };
+    var game = catalog.games.filter(function (g) { return g.id === GAME_ID; })[0] ||
+      { title: { en: "Repeat the Rhythm" }, icon: "🥁", theme: "art" };
+    var theme = catalog.themes.filter(function (th) { return th.id === game.theme; })[0] ||
+      { color: "#EC4C8A", soft: "#FDE8F0" };
+    var home = "../../index.html" + (game.theme ? "#" + game.theme : "");
+    var root = document.getElementById("game");
+
+    document.documentElement.style.setProperty("--c", theme.color);
+    document.documentElement.style.setProperty("--soft", theme.soft);
+
+    var lang, level, setup, state, els = {};
+    var timers = [];
+
+    function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+    function stopTimers() { timers.forEach(clearTimeout); timers = []; }
+
+    function msPerBeat() { return 60000 / (setup.bpm + state.step * 3); }
+
+    function seg(attr, items, current) {
+      return '<div class="g-seg" role="group">' + items.map(function (it) {
+        var on = String(it.value) === String(current);
+        return '<button type="button" class="g-seg__btn' + (it.cls ? " " + it.cls : "") + (on ? " is-active" : "") +
+          '" data-' + attr + '="' + it.value + '" aria-pressed="' + on + '"' +
+          (it.lang ? ' lang="' + it.lang + '"' : "") + ">" + it.label + "</button>";
+      }).join("") + "</div>";
+    }
+
+    /* ----- Page shell ----- */
+
+    function build() {
+      lang = S.get("lang");
+      level = S.getLevel(GAME_ID);
+      setup = LEVEL_SETUP[level];
+      var levelInfo = S.LEVELS.filter(function (l) { return l.id === level; })[0];
+      var title = S.tr(game.title);
+      var lvSub = { easy: "lvEasy", medium: "lvMedium", hard: "lvHard" };
+
+      document.documentElement.lang = lang;
+      document.title = title + " · Play & Learn";
+
+      root.innerHTML =
+        '<header class="g-top">' +
+          '<a class="g-back" href="' + home + '">' +
+            '<span aria-hidden="true">←</span> <span class="g-back__label">' + esc(t("allGames")) + "</span></a>" +
+          '<div class="g-title"><span aria-hidden="true">' + game.icon + "</span> " + esc(title) + "</div>" +
+          '<div class="g-right">' +
+            '<button class="g-gear" type="button" id="g-gear" aria-expanded="false" aria-controls="g-panel" title="' + esc(t("settings")) + '">' +
+              '<span aria-hidden="true">⚙️</span><span class="g-gear__lang">' + esc(S.langInfo(lang).label) + "</span>" +
+              '<span class="g-gear__level">' + levelInfo.icon +
+                '<span class="g-gear__lvname"> ' + esc(S.tr(levelInfo.name)) + "</span></span>" +
+            "</button>" +
+          "</div>" +
+          '<div class="g-panel" id="g-panel" hidden>' +
+            '<div class="g-panel__row"><span class="g-panel__label">🌐 ' + esc(t("language")) + "</span>" +
+              seg("lang", S.LANGS.map(function (l) { return { value: l.id, label: esc(l.label), lang: l.id }; }), lang) +
+            "</div>" +
+            '<div class="g-panel__row"><span class="g-panel__label">🎯 ' + esc(t("level")) + "</span>" +
+              seg("level", S.LEVELS.map(function (l) {
+                return { value: l.id, cls: "rr-lv",
+                  label: l.icon + "&nbsp;" + esc(S.tr(l.name)) + "<small>" + esc(t(lvSub[l.id])) + "</small>" };
+              }), level) +
+            "</div>" +
+            '<p class="g-panel__note">' + esc(t("restartNote")) + "</p>" +
+          "</div>" +
+        "</header>" +
+        '<main class="g-stage"><div class="g-card" id="g-card"></div></main>';
+
+      els.card = document.getElementById("g-card");
+      els.panel = document.getElementById("g-panel");
+      els.gear = document.getElementById("g-gear");
+
+      els.gear.addEventListener("click", function (e) { e.stopPropagation(); togglePanel(els.panel.hidden); });
+      els.panel.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var btn = e.target.closest("[data-lang],[data-level]");
+        if (!btn) return;
+        if (btn.hasAttribute("data-lang")) {
+          // Language only changes the words — the game keeps going.
+          S.set("lang", btn.getAttribute("data-lang"));
+          build();
+          if (state.phase === "over") finish(state.won); else render();
+          togglePanel(true);
+          return;
+        }
+        S.setLevel(GAME_ID, btn.getAttribute("data-level"));
+        build();
+        newGame();
+        togglePanel(true);
+      });
+    }
+
+    function togglePanel(open) {
+      if (!els.panel) return;
+      els.panel.hidden = !open;
+      els.gear.setAttribute("aria-expanded", String(open));
+    }
+    document.addEventListener("click", function () { togglePanel(false); });
+
+    /* ----- One game ----- */
+
+    function newGame() {
+      stopTimers();
+      lastKey = "";
+      state = { phase: "intro", step: 0, hearts: HEARTS, pattern: makePattern(0),
+                taps: [], you: [], lit: 0, msg: "", msgCls: "", sub: "", won: false };
+      render();
+    }
+
+    function stepHTML() {
+      return '<div class="rr-stats">' +
+        '<span class="rr-stat">🎵 <span>' + esc(t("levelN")) + " <b>" + (state.step + 1) + "</b>/" + STEPS.length + "</span></span>" +
+        '<span class="rr-stat rr-hearts" aria-label="' + state.hearts + '/3">' +
+          new Array(state.hearts + 1).join("❤️") + new Array(HEARTS - state.hearts + 1).join("🤍") + "</span>" +
+      "</div>";
+    }
+
+    function stripHTML() {
+      var at = onsets(state.pattern);
+      var total = at[at.length - 1] || 1;
+      var dots = state.pattern.map(function (n, k) {
+        var p = PADS[n.pad];
+        return '<span class="rr-dot' + (k < state.lit ? " is-on" : "") + '" data-k="' + k + '" style="--x:' +
+          (at[k] / total * 100) + "%;--pc:" + p.color + '" aria-hidden="true">' + p.icon + "</span>";
+      }).join("");
+      var you = youDotsHTML(total);
+      return '<div class="rr-strip">' +
+        '<div class="rr-row"><span class="rr-row__icon" aria-hidden="true">👂</span><div class="rr-track" id="rr-pattern">' + dots + "</div></div>" +
+        '<div class="rr-row"><span class="rr-row__icon" aria-hidden="true">👆</span><div class="rr-track" id="rr-you">' + you + "</div></div>" +
+      "</div>";
+    }
+
+    function padsHTML() {
+      var n = STEPS[state.step].pads;
+      var isNew = state.step > 0 && STEPS[state.step - 1].pads < n && state.phase !== "intro";
+      var html = "";
+      for (var i = 0; i < n; i++) {
+        var p = PADS[i];
+        html += '<button type="button" class="rr-pad' + (isNew && i === n - 1 ? " is-new" : "") + '" data-pad="' + i +
+          '" style="--pc:' + p.color + '">' +
+          '<span class="rr-pad__key" aria-hidden="true">' + (i + 1) + "</span>" +
+          '<span class="rr-pad__icon" aria-hidden="true">' + p.icon + "</span>" +
+          '<span class="rr-pad__name">' + esc(S.tr(p.name)) + "</span></button>";
+      }
+      return '<div class="rr-pads' + (state.phase === "listen" ? " is-listening" : "") + '" id="rr-pads" data-n="' + n +
+        '" style="--n:' + n + '">' + html + "</div>";
+    }
+
+    function render() {
+      if (state.phase === "intro") {
+        els.card.innerHTML =
+          '<div class="rr-intro">' +
+            '<div class="rr-intro__icon" aria-hidden="true">🥁🎵</div>' +
+            '<h1 class="rr-intro__title">' + esc(t("introTitle")) + "</h1>" +
+            '<p class="rr-intro__rules">' + esc(t("introRules")) + "</p>" +
+            (AudioCtx
+              ? '<button class="g-btn g-btn--primary" type="button" id="rr-start">▶&nbsp;' + esc(t("start")) + "</button>" +
+                '<p class="rr-sub" style="margin-top:14px">' + esc(t("soundHint")) + "</p>"
+              : '<p class="g-feedback is-wrong">' + esc(t("noAudio")) + "</p>") +
+          "</div>";
+        var startBtn = document.getElementById("rr-start");
+        if (startBtn) startBtn.addEventListener("click", function () { ensureAudio(); startListen(400); });
+        return;
+      }
+
+      var prompt = { ready: t("ready"), listen: t("listen"), play: t("play") }[state.phase] || state.msg;
+      var sub = { ready: t("readySub"), listen: t("listenSub"), play: t("playSub") }[state.phase];
+      if (sub == null) sub = state.sub;
+      var promptCls = state.phase === "good" ? " is-right" : state.phase === "bad" ? " is-wrong" : "";
+
+      var actions = "";
+      if (state.phase === "ready") {
+        actions = '<button class="g-btn g-btn--primary" type="button" data-act="listen">▶&nbsp;' + esc(t("listenBtn")) + "</button>";
+      } else if (state.phase === "play") {
+        actions = '<button class="g-btn" type="button" data-act="listen">🔁&nbsp;' + esc(t("againBtn")) + "</button>";
+      } else if (state.phase === "bad" && state.hearts > 0) {
+        actions = '<button class="g-btn g-btn--primary" type="button" data-act="listen">🔁&nbsp;' + esc(t("retryBtn")) + "</button>";
+      }
+
+      els.card.innerHTML =
+        stepHTML() +
+        '<h1 class="rr-prompt g-feedback' + promptCls + '" id="rr-prompt" aria-live="polite">' + esc(prompt) + "</h1>" +
+        '<p class="rr-sub" id="rr-sub">' + esc(sub) + "</p>" +
+        stripHTML() +
+        padsHTML() +
+        '<p class="g-feedback" id="rr-fb">' + esc(state.fb || "") + "</p>" +
+        '<div class="rr-actions">' + actions + "</div>";
+
+      els.pads = document.getElementById("rr-pads");
+      els.you = document.getElementById("rr-you");
+
+      els.pads.addEventListener("pointerdown", function (e) {
+        var btn = e.target.closest("[data-pad]");
+        if (!btn || (e.pointerType === "mouse" && e.button !== 0)) return;
+        e.preventDefault();
+        tap(Number(btn.getAttribute("data-pad")));
+      });
+      // Keyboard Enter / Space on a focused pad (pointer taps are handled above).
+      els.pads.addEventListener("click", function (e) {
+        var btn = e.target.closest("[data-pad]");
+        if (btn && e.detail === 0) tap(Number(btn.getAttribute("data-pad")));
+      });
+      els.card.querySelectorAll("[data-act=listen]").forEach(function (b) {
+        b.addEventListener("click", function () { startListen(250); });
+      });
+    }
+
+    function flashPad(i, cls, ms) {
+      var el = els.pads && els.pads.querySelector('[data-pad="' + i + '"]');
+      if (!el) return;
+      cls = cls || "is-hit";
+      el.classList.remove(cls);
+      void el.offsetWidth;                     // restart the animation
+      el.classList.add(cls);
+      setTimeout(function () { el.classList.remove(cls); }, ms || 160);
+    }
+
+    /* ----- Listening: play the rhythm ----- */
+
+    function startListen(delay) {
+      stopTimers();
+      state.phase = "listen";
+      state.taps = [];
+      state.you = [];
+      state.lit = 0;
+      state.fb = state.newSound || "";
+      state.newSound = "";
+      render();
+
+      var beat = msPerBeat(), at = onsets(state.pattern), lead = delay || 0;
+      state.pattern.forEach(function (n, k) {
+        later(function () {
+          playSound(n.pad);
+          flashPad(n.pad, "is-lit", Math.min(beat * 0.45, 220));
+          state.lit = k + 1;
+          var dot = document.querySelector('#rr-pattern [data-k="' + k + '"]');
+          if (dot) { dot.classList.add("is-on", "is-hit"); }
+        }, lead + at[k] * beat);
+      });
+      later(function () {
+        state.phase = "play";
+        state.fb = "";
+        render();
+      }, lead + at[at.length - 1] * beat + Math.max(beat * 0.6, 450));
+    }
+
+    /* ----- Playing: the child taps ----- */
+
+    function tap(i) {
+      if (state.phase === "listen" || state.phase === "over" || state.phase === "intro") return;
+      playSound(i);
+      flashPad(i);
+      if (state.phase !== "play") return;      // free play between rounds — just make the sound
+
+      var now = performance.now();
+      var k = state.taps.length;
+      var note = state.pattern[k];
+      state.taps.push({ pad: i, t: now });
+
+      var x = k === 0 ? 0 : (now - state.taps[0].t) / msPerBeat();
+      if (note.pad !== i) {
+        state.you.push({ pad: i, x: x, cls: "is-bad" });
+        mistake("pad");
+        return;
+      }
+      state.you.push({ pad: i, x: x });
+      drawYou();
+
+      if (state.taps.length === state.pattern.length) {
+        var res = judge(state.pattern, state.taps, setup, msPerBeat());
+        state.you = state.taps.map(function (tp, j) {
+          return { pad: tp.pad, x: res.xs[j], cls: res.dotOk[j] && res.tempo === "ok" ? "is-ok" : "is-bad" };
+        });
+        if (res.ok) success(); else mistake(res.tempo === "ok" ? "gap" : res.tempo);
+      }
+    }
+
+    function drawYou() {
+      var at = onsets(state.pattern);
+      var total = at[at.length - 1] || 1;
+      if (els.you) els.you.innerHTML = youDotsHTML(total);
+    }
+
+    /** The child's taps. If they played longer than the pattern, the row is squeezed to fit. */
+    function youDotsHTML(total) {
+      var maxX = state.you.reduce(function (m, d) { return Math.max(m, d.x); }, 0);
+      var width = Math.max(total, maxX);
+      return state.you.map(function (d) {
+        var p = PADS[d.pad];
+        return '<span class="rr-dot rr-dot--you' + (d.cls ? " " + d.cls : "") + '" style="--x:' +
+          (d.x / width * 100) + "%;--pc:" + p.color + '" aria-hidden="true">' + p.icon + "</span>";
+      }).join("");
+    }
+
+    function success() {
+      state.phase = "good";
+      state.msg = pick(S.tr(UI.praise));
+      state.sub = "";
+      state.fb = "";
+      render();
+      els.pads.classList.add("is-happy");
+      playJingle();
+
+      later(function () {
+        if (state.step + 1 >= STEPS.length) { state.won = true; finish(true); return; }
+        var before = STEPS[state.step].pads;
+        state.step++;
+        state.pattern = makePattern(state.step);
+        if (STEPS[state.step].pads > before) {
+          var p = PADS[STEPS[state.step].pads - 1];
+          state.newSound = t("newSound").replace("{s}", p.icon + " " + S.tr(p.name));
+        }
+        startListen(900);
+      }, 1500);
+    }
+
+    function mistake(kind) {
+      state.phase = "bad";
+      state.hearts = Math.max(0, state.hearts - 1);
+      state.msg = kind === "pad" ? t("oops") : t("almost");
+      state.sub = { pad: t("wrongPad"), gap: t("wrongGap"), fast: t("tooFast"), slow: t("tooSlow") }[kind];
+      state.fb = "";
+      render();
+      if (kind === "pad") flashPad(state.taps[state.taps.length - 1].pad, "is-wrong", 420);
+      if (state.hearts === 0) later(function () { finish(false); }, 2200);
+    }
+
+    function playJingle() {
+      if (!ensureAudio()) return;
+      [523.25, 659.3, 784, 1046.5].forEach(function (f, k) {
+        tone("triangle", f, ctx.currentTime + 0.05 + k * 0.09, 0.25, 0.35);
+      });
+    }
+
+    /* ----- End of the game ----- */
+
+    function finish(won) {
+      stopTimers();
+      state.phase = "over";
+      state.won = won;
+      var idx = S.LEVELS.map(function (l) { return l.id; }).indexOf(level);
+      var done = won ? STEPS.length : state.step;
+      var stars = won ? Math.max(1, state.hearts) : done >= 7 ? 2 : done >= 3 ? 1 : 0;
+      var title = won ? t("end" + stars) : t("endLose");
+      var score = won
+        ? t("endWinScore").replace("{n}", STEPS.length).replace("{h}", state.hearts)
+        : t("endLoseScore").replace("{l}", state.step + 1).replace("{n}", STEPS.length);
+      var next = won && stars === 3 ? S.LEVELS[idx + 1] : null;
+
+      els.card.innerHTML =
+        '<div class="g-end">' +
+          '<div class="g-stars" aria-label="' + esc(t("stars").replace("{n}", stars)) + '">' +
+            [1, 2, 3].map(function (i) {
+              return '<span class="g-star' + (i <= stars ? " is-on" : "") + '" style="animation-delay:' + (i * 0.15) + 's">★</span>';
+            }).join("") +
+          "</div>" +
+          '<h1 class="g-end__title">' + esc(title) + "</h1>" +
+          '<p class="g-end__score">' + score + "</p>" +
+          '<div class="g-end__actions">' +
+            (next ? '<button class="g-btn g-btn--primary" type="button" id="g-next">' + next.icon + " " +
+              esc(t("nextLevel").replace("{l}", S.tr(next.name))) + "</button>" : "") +
+            '<button class="g-btn' + (next ? "" : " g-btn--primary") + '" type="button" id="g-again">' + esc(t("again")) + "</button>" +
+            '<a class="g-btn" href="' + home + '">' + esc(t("more")) + "</a>" +
+          "</div>" +
+        "</div>";
+
+      if (won) playJingle();
+      document.getElementById("g-again").addEventListener("click", function () { newGame(); startListen(400); });
+      if (next) document.getElementById("g-next").addEventListener("click", function () {
+        S.setLevel(GAME_ID, next.id);
+        build();
+        newGame();
+        startListen(400);
+      });
+    }
+
+    /* ----- Keyboard: 1–4 play the pads ----- */
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { togglePanel(false); return; }
+      if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || !state || !els.pads) return;
+      var n = Number(e.key);
+      if (n >= 1 && n <= STEPS[state.step].pads && document.body.contains(els.pads)) {
+        e.preventDefault();
+        ensureAudio();
+        tap(n - 1);
+      }
+    });
+
+    build();
+    newGame();
+  })();
+  </script>
+</body>
+</html>
