@@ -70,6 +70,19 @@ window.LEARNING_GAMES = {
       }
     },
     {
+      id: "missing-operators",
+      theme: "math",
+      icon: "➗",
+      ages: "7+",
+      url: "games/missing-operators/index.html",
+      title: { en: "Missing Operators", hy: "Կորած նշանները", ru: "Пропущенные знаки" },
+      description: {
+        en: "Insert +, −, × or ÷ to make the equation correct. 3 levels.",
+        hy: "Տեղադրի՛ր +, −, × կամ ÷ նշանը, որպեսզի հավասարությունը ճիշտ լինի։ 3 մակարդակ։",
+        ru: "Вставь +, −, × или ÷, чтобы равенство стало верным. 3 уровня."
+      }
+    },
+    {
       id: "flag-detective",
       theme: "geography",
       icon: "🚩",
