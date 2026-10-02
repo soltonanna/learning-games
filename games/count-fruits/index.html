@@ -6,35 +6,47 @@
   <title>Count the Fruits · Play &amp; Learn</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700;800&family=Noto+Sans+Armenian:wght@500;600;700;800&display=swap">
   <link rel="stylesheet" href="../shared/game.css">
 </head>
 <body>
   <div id="game"></div>
 
+  <script src="../../js/settings.js"></script>
   <script src="../../js/games-data.js"></script>
   <script src="../shared/engine.js"></script>
   <script>
+    // [emoji, English one/many, Armenian, Russian one/few/many]
     var FRUITS = [
-      ["🍎", "apple", "apples"], ["🍌", "banana", "bananas"], ["🍓", "strawberry", "strawberries"],
-      ["🍊", "orange", "oranges"], ["🍐", "pear", "pears"], ["🍋", "lemon", "lemons"],
-      ["🍑", "peach", "peaches"], ["🥝", "kiwi", "kiwis"], ["🍉", "watermelon", "watermelons"]
+      ["🍎", ["apple", "apples"],             "խնձոր",  ["яблоко", "яблока", "яблок"]],
+      ["🍌", ["banana", "bananas"],           "բանան",  ["банан", "банана", "бананов"]],
+      ["🍓", ["strawberry", "strawberries"],  "ելակ",   ["клубничка", "клубнички", "клубничек"]],
+      ["🍊", ["orange", "oranges"],           "նարինջ", ["апельсин", "апельсина", "апельсинов"]],
+      ["🍐", ["pear", "pears"],               "տանձ",   ["груша", "груши", "груш"]],
+      ["🍋", ["lemon", "lemons"],             "կիտրոն", ["лимон", "лимона", "лимонов"]],
+      ["🍑", ["peach", "peaches"],            "դեղձ",   ["персик", "персика", "персиков"]],
+      ["🥝", ["kiwi", "kiwis"],               "կիվի",   ["киви", "киви", "киви"]],
+      ["🍉", ["watermelon", "watermelons"],   "ձմերուկ", ["арбуз", "арбуза", "арбузов"]]
     ];
 
     GameKit.start({
       id: "count-fruits",
       rounds: 10,
-      makeQuestion: function () {
+      makeQuestion: function (lang) {
         var n = GameKit.randInt(1, 10);
-        var fruit = GameKit.pick(FRUITS);
-        var name = n === 1 ? fruit[1] : fruit[2];
+        var f = GameKit.pick(FRUITS);
+        var forms = { en: f[1], hy: [f[2]], ru: f[3] };
         return {
-          key: fruit[0] + n,
-          prompt: "How many " + fruit[2] + "?",
-          visual: '<div class="v-grid">' + new Array(n + 1).join("<span>" + fruit[0] + "</span>") + "</div>",
+          key: f[0] + n,
+          prompt: GameKit.tr({
+            en: "How many " + f[1][1] + "?",
+            hy: "Քանի՞ " + f[2] + " կա",
+            ru: "Сколько тут " + f[3][2] + "?"
+          }),
+          visual: '<div class="v-grid">' + new Array(n + 1).join("<span>" + f[0] + "</span>") + "</div>",
           choices: GameKit.numberChoices(n, 1, 10, 4),
           answer: n,
-          explain: n + " " + name + "!",
+          explain: n + " " + GameKit.plural(n, forms) + "!",
           size: "big"
         };
       }

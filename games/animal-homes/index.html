@@ -6,42 +6,62 @@
   <title>Animal Homes · Play &amp; Learn</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700;800&family=Noto+Sans+Armenian:wght@500;600;700;800&display=swap">
   <link rel="stylesheet" href="../shared/game.css">
 </head>
 <body>
   <div id="game"></div>
 
+  <script src="../../js/settings.js"></script>
   <script src="../../js/games-data.js"></script>
   <script src="../shared/engine.js"></script>
   <script>
     var HOMES = {
-      ocean:  "🌊 Ocean",
-      farm:   "🚜 Farm",
-      jungle: "🌴 Jungle",
-      snow:   "❄️ Ice & snow",
-      desert: "🏜️ Desert"
+      ocean:  { en: "🌊 Ocean",      hy: "🌊 Օվկիանոս",          ru: "🌊 Океан" },
+      farm:   { en: "🚜 Farm",       hy: "🚜 Ագարակ",            ru: "🚜 Ферма" },
+      jungle: { en: "🌴 Jungle",     hy: "🌴 Ջունգլի",           ru: "🌴 Джунгли" },
+      snow:   { en: "❄️ Ice & snow", hy: "❄️ Սառույց և ձյուն",   ru: "❄️ Лёд и снег" },
+      desert: { en: "🏜️ Desert",     hy: "🏜️ Անապատ",            ru: "🏜️ Пустыня" }
     };
+    // Armenian names include the article (-ը / -ն) so they fit the question.
     var ANIMALS = [
-      ["🐬", "dolphin", "ocean"], ["🐙", "octopus", "ocean"], ["🦈", "shark", "ocean"], ["🐳", "whale", "ocean"],
-      ["🐄", "cow", "farm"], ["🐖", "pig", "farm"], ["🐑", "sheep", "farm"], ["🐔", "chicken", "farm"], ["🐴", "horse", "farm"],
-      ["🐒", "monkey", "jungle"], ["🦜", "parrot", "jungle"], ["🐅", "tiger", "jungle"], ["🦍", "gorilla", "jungle"],
-      ["🐻‍❄️", "polar bear", "snow"], ["🐧", "penguin", "snow"], ["🦭", "seal", "snow"],
-      ["🐪", "camel", "desert"], ["🦂", "scorpion", "desert"], ["🦎", "lizard", "desert"]
+      ["🐬", "ocean",  { en: "dolphin", hy: "դելֆինը", ru: "дельфин" }],
+      ["🐙", "ocean",  { en: "octopus", hy: "ութոտնուկը", ru: "осьминог" }],
+      ["🦈", "ocean",  { en: "shark", hy: "շնաձուկը", ru: "акула" }],
+      ["🐳", "ocean",  { en: "whale", hy: "կետը", ru: "кит" }],
+      ["🐄", "farm",   { en: "cow", hy: "կովը", ru: "корова" }],
+      ["🐖", "farm",   { en: "pig", hy: "խոզը", ru: "свинья" }],
+      ["🐑", "farm",   { en: "sheep", hy: "ոչխարը", ru: "овца" }],
+      ["🐔", "farm",   { en: "chicken", hy: "հավը", ru: "курица" }],
+      ["🐴", "farm",   { en: "horse", hy: "ձին", ru: "лошадь" }],
+      ["🐒", "jungle", { en: "monkey", hy: "կապիկը", ru: "обезьяна" }],
+      ["🦜", "jungle", { en: "parrot", hy: "թութակը", ru: "попугай" }],
+      ["🐅", "jungle", { en: "tiger", hy: "վագրը", ru: "тигр" }],
+      ["🦍", "jungle", { en: "gorilla", hy: "գորիլան", ru: "горилла" }],
+      ["🐻‍❄️", "snow", { en: "polar bear", hy: "սպիտակ արջը", ru: "белый медведь" }],
+      ["🐧", "snow",   { en: "penguin", hy: "պինգվինը", ru: "пингвин" }],
+      ["🦭", "snow",   { en: "seal", hy: "փոկը", ru: "тюлень" }],
+      ["🐪", "desert", { en: "camel", hy: "ուղտը", ru: "верблюд" }],
+      ["🦂", "desert", { en: "scorpion", hy: "կարիճը", ru: "скорпион" }],
+      ["🦎", "desert", { en: "lizard", hy: "մողեսը", ru: "ящерица" }]
     ];
-    var LABELS = Object.keys(HOMES).map(function (k) { return HOMES[k]; });
 
     GameKit.start({
       id: "animal-homes",
       rounds: 10,
-      makeQuestion: function () {
+      makeQuestion: function (lang) {
+        var labels = Object.keys(HOMES).map(function (k) { return GameKit.tr(HOMES[k]); });
         var a = GameKit.pick(ANIMALS);
-        var home = HOMES[a[2]];
+        var home = GameKit.tr(HOMES[a[1]]);
         return {
-          key: a[1],
-          prompt: "Where does the " + a[1] + " live?",
+          key: a[2].en,
+          prompt: GameKit.tr({
+            en: "Where does the " + a[2].en + " live?",
+            hy: "Որտե՞ղ է ապրում " + a[2].hy,
+            ru: "Где живёт " + a[2].ru + "?"
+          }),
           visual: '<div class="v-emoji">' + a[0] + "</div>",
-          choices: GameKit.withDistractors(home, LABELS, 4),
+          choices: GameKit.withDistractors(home, labels, 4),
           answer: home
         };
       }

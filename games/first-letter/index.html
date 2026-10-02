@@ -6,37 +6,81 @@
   <title>First Letter · Play &amp; Learn</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700;800&family=Noto+Sans+Armenian:wght@500;600;700;800&display=swap">
   <link rel="stylesheet" href="../shared/game.css">
 </head>
 <body>
   <div id="game"></div>
 
+  <script src="../../js/settings.js"></script>
   <script src="../../js/games-data.js"></script>
   <script src="../shared/engine.js"></script>
   <script>
-    var WORDS = [
-      ["🍎", "Apple"], ["⚽", "Ball"], ["🐱", "Cat"], ["🐶", "Dog"], ["🥚", "Egg"], ["🐟", "Fish"],
-      ["🍇", "Grapes"], ["🎩", "Hat"], ["🍦", "Ice cream"], ["🧃", "Juice"], ["🪁", "Kite"], ["🦁", "Lion"],
-      ["🌙", "Moon"], ["👃", "Nose"], ["🍊", "Orange"], ["🐷", "Pig"], ["🐰", "Rabbit"], ["☀️", "Sun"],
-      ["🌳", "Tree"], ["☂️", "Umbrella"], ["🚐", "Van"], ["⌚", "Watch"], ["🦓", "Zebra"]
-    ];
-    var LETTERS = "ABCDEFGHIJKLMNOPRSTUVWZ".split("");
+    // Each language has its own words and alphabet.
+    // For Armenian, words that start with "Ու" use "Ու" as the letter.
+    var WORDS = {
+      en: [
+        ["🍎", "Apple"], ["⚽", "Ball"], ["🐱", "Cat"], ["🐶", "Dog"], ["🥚", "Egg"], ["🐟", "Fish"],
+        ["🍇", "Grapes"], ["🎩", "Hat"], ["🍦", "Ice cream"], ["🧃", "Juice"], ["🪁", "Kite"], ["🦁", "Lion"],
+        ["🌙", "Moon"], ["👃", "Nose"], ["🍊", "Orange"], ["🐷", "Pig"], ["🐰", "Rabbit"], ["☀️", "Sun"],
+        ["🌳", "Tree"], ["☂️", "Umbrella"], ["🚐", "Van"], ["⌚", "Watch"], ["🦓", "Zebra"]
+      ],
+      hy: [
+        ["☀️", "Արև"], ["🦁", "Առյուծ"], ["🦉", "Բու"], ["🐺", "Գայլ"], ["🍑", "Դեղձ"], ["🍓", "Ելակ"],
+        ["🔔", "Զանգ"], ["🦋", "Թիթեռ"], ["⏰", "Ժամացույց"], ["🌙", "Լուսին"], ["🍎", "Խնձոր"], ["🌊", "Ծով"],
+        ["🐱", "Կատու"], ["🍞", "Հաց"], ["🐟", "Ձուկ"], ["🐴", "Ձի"], ["🐭", "Մուկ"], ["🐝", "Մեղու"],
+        ["🍊", "Նարինջ"], ["🐶", "Շուն"], ["🦔", "Ոզնի"], ["🍦", "Պաղպաղակ"], ["💧", "Ջուր"], ["🤖", "Ռոբոտ"],
+        ["❤️", "Սիրտ"], ["🐯", "Վագր"], ["🏠", "Տուն"], ["🐂", "Ցուլ"], ["🐫", "Ուղտ"], ["🐘", "Փիղ"],
+        ["🪨", "Քար"], ["🐍", "Օձ"], ["⚽", "Ֆուտբոլ"]
+      ],
+      ru: [
+        ["🍉", "Арбуз"], ["🍌", "Банан"], ["🐺", "Волк"], ["🍄", "Гриб"], ["🏠", "Дом"], ["🌲", "Ель"],
+        ["🦔", "Ёжик"], ["🦒", "Жираф"], ["🐰", "Заяц"], ["🦃", "Индюк"], ["🐱", "Кошка"], ["🦁", "Лев"],
+        ["🐭", "Мышка"], ["👃", "Нос"], ["🦌", "Олень"], ["🐧", "Пингвин"], ["🐟", "Рыба"], ["☀️", "Солнце"],
+        ["🐯", "Тигр"], ["🦆", "Утка"], ["🔦", "Фонарик"], ["🍞", "Хлеб"], ["🌸", "Цветок"], ["🫖", "Чайник"],
+        ["🎈", "Шарик"], ["🐶", "Щенок"], ["👗", "Юбка"], ["🍎", "Яблоко"]
+      ]
+    };
+    var LETTERS = {
+      en: "ABCDEFGHIJKLMNOPRSTUVWZ".split(""),
+      hy: ["Ա","Բ","Գ","Դ","Ե","Զ","Է","Ը","Թ","Ժ","Ի","Լ","Խ","Ծ","Կ","Հ","Ձ","Ղ","Ճ","Մ",
+           "Յ","Ն","Շ","Ո","Չ","Պ","Ջ","Ռ","Ս","Վ","Տ","Ր","Ց","Ու","Փ","Ք","Օ","Ֆ"],
+      ru: "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЭЮЯ".split("")
+    };
+
+    function firstLetter(word, lang) {
+      if (lang === "hy" && word.indexOf("Ու") === 0) return "Ու";
+      return word.charAt(0);
+    }
 
     GameKit.start({
       id: "first-letter",
       rounds: 10,
-      makeQuestion: function () {
-        var w = GameKit.pick(WORDS);
-        var letter = w[1].charAt(0);
+      makeQuestion: function (lang) {
+        var w = GameKit.pick(WORDS[lang] || WORDS.en);
+        var word = w[1];
+        var letter = firstLetter(word, lang);
+        var lower = word.toLocaleLowerCase(lang);
         return {
-          key: w[1],
-          prompt: "Which letter does it start with?",
-          say: w[1] + ". Which letter does " + w[1].toLowerCase() + " start with?",
+          key: word,
+          prompt: GameKit.tr({
+            en: "Which letter does it start with?",
+            hy: "Ո՞ր տառով է սկսվում",
+            ru: "С какой буквы начинается?"
+          }),
+          say: GameKit.tr({
+            en: word + ". Which letter does " + lower + " start with?",
+            hy: word + "։ Ո՞ր տառով է սկսվում " + lower + " բառը։",
+            ru: word + ". С какой буквы начинается слово " + lower + "?"
+          }),
           visual: '<div class="v-emoji">' + w[0] + "</div>",
-          choices: GameKit.withDistractors(letter, LETTERS, 4),
+          choices: GameKit.withDistractors(letter, LETTERS[lang] || LETTERS.en, 4),
           answer: letter,
-          explain: letter + " is for " + w[1] + ".",
+          explain: GameKit.tr({
+            en: letter + " is for " + word + ".",
+            hy: word + " բառը սկսվում է «" + letter + "» տառով։",
+            ru: word + " начинается на «" + letter + "»."
+          }),
           size: "big"
         };
       }

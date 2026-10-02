@@ -6,41 +6,68 @@
   <title>Capital Cities · Play &amp; Learn</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700;800&family=Noto+Sans+Armenian:wght@500;600;700;800&display=swap">
   <link rel="stylesheet" href="../shared/game.css">
 </head>
 <body>
   <div id="game"></div>
 
+  <script src="../../js/settings.js"></script>
   <script src="../../js/games-data.js"></script>
   <script src="../shared/engine.js"></script>
   <script>
+    // [flag, country, capital]. English country names that need "the" have it in `the`.
     var COUNTRIES = [
-      ["🇦🇲", "Armenia", "Yerevan"], ["🇫🇷", "France", "Paris"], ["🇮🇹", "Italy", "Rome"],
-      ["🇯🇵", "Japan", "Tokyo"], ["🇬🇧", "the United Kingdom", "London"], ["🇪🇸", "Spain", "Madrid"],
-      ["🇩🇪", "Germany", "Berlin"], ["🇪🇬", "Egypt", "Cairo"], ["🇬🇷", "Greece", "Athens"],
-      ["🇬🇪", "Georgia", "Tbilisi"], ["🇨🇦", "Canada", "Ottawa"], ["🇦🇺", "Australia", "Canberra"],
-      ["🇨🇳", "China", "Beijing"], ["🇮🇳", "India", "New Delhi"], ["🇧🇷", "Brazil", "Brasília"],
-      ["🇦🇷", "Argentina", "Buenos Aires"], ["🇲🇽", "Mexico", "Mexico City"], ["🇺🇸", "the United States", "Washington, D.C."],
-      ["🇳🇱", "the Netherlands", "Amsterdam"], ["🇸🇪", "Sweden", "Stockholm"], ["🇳🇴", "Norway", "Oslo"],
-      ["🇰🇪", "Kenya", "Nairobi"], ["🇰🇷", "South Korea", "Seoul"], ["🇵🇹", "Portugal", "Lisbon"]
+      ["🇦🇲", { en: "Armenia", hy: "Հայաստան", ru: "Армения" }, { en: "Yerevan", hy: "Երևան", ru: "Ереван" }],
+      ["🇫🇷", { en: "France", hy: "Ֆրանսիա", ru: "Франция" }, { en: "Paris", hy: "Փարիզ", ru: "Париж" }],
+      ["🇮🇹", { en: "Italy", hy: "Իտալիա", ru: "Италия" }, { en: "Rome", hy: "Հռոմ", ru: "Рим" }],
+      ["🇯🇵", { en: "Japan", hy: "Ճապոնիա", ru: "Япония" }, { en: "Tokyo", hy: "Տոկիո", ru: "Токио" }],
+      ["🇬🇧", { en: "United Kingdom", the: true, hy: "Մեծ Բրիտանիա", ru: "Великобритания" }, { en: "London", hy: "Լոնդոն", ru: "Лондон" }],
+      ["🇪🇸", { en: "Spain", hy: "Իսպանիա", ru: "Испания" }, { en: "Madrid", hy: "Մադրիդ", ru: "Мадрид" }],
+      ["🇩🇪", { en: "Germany", hy: "Գերմանիա", ru: "Германия" }, { en: "Berlin", hy: "Բեռլին", ru: "Берлин" }],
+      ["🇪🇬", { en: "Egypt", hy: "Եգիպտոս", ru: "Египет" }, { en: "Cairo", hy: "Կահիրե", ru: "Каир" }],
+      ["🇬🇷", { en: "Greece", hy: "Հունաստան", ru: "Греция" }, { en: "Athens", hy: "Աթենք", ru: "Афины" }],
+      ["🇬🇪", { en: "Georgia", hy: "Վրաստան", ru: "Грузия" }, { en: "Tbilisi", hy: "Թբիլիսի", ru: "Тбилиси" }],
+      ["🇨🇦", { en: "Canada", hy: "Կանադա", ru: "Канада" }, { en: "Ottawa", hy: "Օտտավա", ru: "Оттава" }],
+      ["🇦🇺", { en: "Australia", hy: "Ավստրալիա", ru: "Австралия" }, { en: "Canberra", hy: "Կանբերա", ru: "Канберра" }],
+      ["🇨🇳", { en: "China", hy: "Չինաստան", ru: "Китай" }, { en: "Beijing", hy: "Պեկին", ru: "Пекин" }],
+      ["🇮🇳", { en: "India", hy: "Հնդկաստան", ru: "Индия" }, { en: "New Delhi", hy: "Նյու Դելի", ru: "Нью-Дели" }],
+      ["🇧🇷", { en: "Brazil", hy: "Բրազիլիա", ru: "Бразилия" }, { en: "Brasília", hy: "Բրազիլիա", ru: "Бразилиа" }],
+      ["🇦🇷", { en: "Argentina", hy: "Արգենտինա", ru: "Аргентина" }, { en: "Buenos Aires", hy: "Բուենոս Այրես", ru: "Буэнос-Айрес" }],
+      ["🇲🇽", { en: "Mexico", hy: "Մեքսիկա", ru: "Мексика" }, { en: "Mexico City", hy: "Մեխիկո", ru: "Мехико" }],
+      ["🇺🇸", { en: "United States", the: true, hy: "ԱՄՆ", ru: "США" }, { en: "Washington, D.C.", hy: "Վաշինգտոն", ru: "Вашингтон" }],
+      ["🇳🇱", { en: "Netherlands", the: true, hy: "Նիդեռլանդներ", ru: "Нидерланды" }, { en: "Amsterdam", hy: "Ամստերդամ", ru: "Амстердам" }],
+      ["🇸🇪", { en: "Sweden", hy: "Շվեդիա", ru: "Швеция" }, { en: "Stockholm", hy: "Ստոկհոլմ", ru: "Стокгольм" }],
+      ["🇳🇴", { en: "Norway", hy: "Նորվեգիա", ru: "Норвегия" }, { en: "Oslo", hy: "Օսլո", ru: "Осло" }],
+      ["🇰🇪", { en: "Kenya", hy: "Քենիա", ru: "Кения" }, { en: "Nairobi", hy: "Նայրոբի", ru: "Найроби" }],
+      ["🇰🇷", { en: "South Korea", hy: "Հարավային Կորեա", ru: "Южная Корея" }, { en: "Seoul", hy: "Սեուլ", ru: "Сеул" }],
+      ["🇵🇹", { en: "Portugal", hy: "Պորտուգալիա", ru: "Португалия" }, { en: "Lisbon", hy: "Լիսաբոն", ru: "Лиссабон" }]
     ];
-    var CITIES = COUNTRIES.map(function (c) { return c[2]; });
-
-    function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 
     GameKit.start({
       id: "capital-cities",
       rounds: 10,
-      makeQuestion: function () {
+      makeQuestion: function (lang) {
+        var cities = COUNTRIES.map(function (c) { return GameKit.tr(c[2]); });
         var c = GameKit.pick(COUNTRIES);
+        var country = GameKit.tr(c[1]);
+        var city = GameKit.tr(c[2]);
+        var enName = (c[1].the ? "the " : "") + c[1].en;
         return {
-          key: c[1],
-          prompt: "What is the capital of " + c[1] + "?",
-          visual: '<div><div class="v-emoji">' + c[0] + '</div><div class="v-caption">' + cap(c[1]) + "</div></div>",
-          choices: GameKit.withDistractors(c[2], CITIES, 4),
-          answer: c[2],
-          explain: c[2] + " is the capital of " + c[1] + "."
+          key: c[1].en,
+          prompt: GameKit.tr({
+            en: "What is the capital of " + enName + "?",
+            hy: "Ո՞րն է այս երկրի մայրաքաղաքը",
+            ru: "Какая столица у этой страны?"
+          }),
+          visual: '<div><div class="v-emoji">' + c[0] + '</div><div class="v-caption">' + country + "</div></div>",
+          choices: GameKit.withDistractors(city, cities, 4),
+          answer: city,
+          explain: GameKit.tr({
+            en: city + " is the capital of " + enName + ".",
+            hy: country + "՝ մայրաքաղաքը " + city + "։",
+            ru: country + ", столица — " + city + "."
+          })
         };
       }
     });

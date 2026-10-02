@@ -112,6 +112,12 @@
     display: grid; place-items: center; color: #fff;
     font-size: 78px; font-weight: 900; text-shadow: 0 3px 0 rgba(0,0,0,.2);
   }
+  .countdown { display: flex; align-items: center; justify-content: center; gap: 8px; margin: -6px 0 16px; font-size: 22px; font-weight: 900; }
+  .countdown .track { flex: 1; max-width: 220px; height: 12px; border-radius: 999px; background: #f1f3f5; overflow: hidden; }
+  .countdown .fill { height: 100%; width: 100%; border-radius: 999px; background: #40c057; }
+  .countdown.low .fill { background: var(--accent); }
+  .countdown.low .num { color: var(--accent); }
+  .countdown.over { color: var(--accent-dark); }
   .card p { font-size: 22px; font-weight: 800; margin: 0 0 20px; line-height: 1.35; }
   .card .actions { display: flex; flex-direction: column; gap: 10px; }
   .btn {
@@ -162,10 +168,12 @@
   <div class="card">
     <div class="big-letter" id="bigLetter"></div>
     <p id="modalText"></p>
+    <div class="countdown" id="countdown" hidden></div>
     <div class="actions" id="modalActions"></div>
   </div>
 </div>
 
+<script src="../../js/settings.js"></script>
 <script>
 /* =====================================================================
    LANGUAGES
@@ -187,6 +195,7 @@ const LANGS = {
       finish: "Ապրե՛ս։ Բոլոր տառերն անցանք 🎉",
       again: "Նորից խաղալ",
       other: "Այլ լեզու",
+      timeUp: "Ժամանակը սպառվեց ⏰",
     },
   },
   ru: {
@@ -204,6 +213,7 @@ const LANGS = {
       finish: "Молодец! Все буквы пройдены 🎉",
       again: "Играть снова",
       other: "Другой язык",
+      timeUp: "Время вышло ⏰",
     },
   },
   en: {
@@ -219,6 +229,7 @@ const LANGS = {
       finish: "Great job! You played every letter 🎉",
       again: "Play again",
       other: "Change language",
+      timeUp: "Time's up ⏰",
     },
   },
 };
@@ -410,9 +421,46 @@ function showLetter(i) {
   $("modal").hidden = false;
   win();
   confetti();
+  startCountdown();
+}
+
+/* =====================================================================
+   THINKING TIME (set on the dashboard or in other games; off by default)
+   ===================================================================== */
+let countdownId = null;
+function stopCountdown() {
+  if (countdownId) clearInterval(countdownId);
+  countdownId = null;
+  $("countdown").hidden = true;
+}
+function startCountdown() {
+  stopCountdown();
+  const secs = window.PlaySettings ? PlaySettings.get("timer") : 0;
+  if (!secs) return;
+  const box = $("countdown");
+  box.className = "countdown";
+  box.innerHTML = '<span>⏱️</span><div class="track"><div class="fill"></div></div><span class="num">' + secs + "</span>";
+  box.hidden = false;
+  const fill = box.querySelector(".fill"), num = box.querySelector(".num");
+  void fill.offsetWidth;
+  fill.style.transition = `width ${secs}s linear`;
+  fill.style.width = "0%";
+  const end = Date.now() + secs * 1000;
+  countdownId = setInterval(() => {
+    const left = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+    num.textContent = left;
+    box.classList.toggle("low", left <= 3);
+    if (left <= 0) {
+      clearInterval(countdownId); countdownId = null;
+      box.className = "countdown over";
+      box.textContent = LANGS[lang].t.timeUp;
+      beep(440, 0.25, "triangle", 0.12); beep(330, 0.4, "triangle", 0.12, 0.2);
+    }
+  }, 200);
 }
 
 function removeLetter(i) {
+  stopCountdown();
   used.push(letters[i]);
   letters.splice(i, 1);
   $("modal").hidden = true;
@@ -423,6 +471,7 @@ function removeLetter(i) {
 }
 
 function showFinish() {
+  stopCountdown();
   const t = LANGS[lang].t;
   const big = $("bigLetter");
   big.textContent = "⭐";
@@ -485,6 +534,7 @@ function updateInfo() {
 
 function startGame(code) {
   lang = code;
+  if (window.PlaySettings) PlaySettings.set("lang", code);   // remembered for the dashboard and other games
   const { t } = LANGS[code];
   letters = LANGS[code].letters.slice();
   used = [];
@@ -522,9 +572,10 @@ document.addEventListener("keydown", e => {
 window.addEventListener("resize", () => { if (!$("gameScreen").hidden) resize(); });
 if (document.fonts) document.fonts.ready.then(() => { if (lang) draw(); });
 
-// Optional: open straight into a language with ?lang=hy | ru | en
-const startLang = new URLSearchParams(location.search).get("lang");
-if (LANGS[startLang]) startGame(startLang);
+// Start in the language chosen on the dashboard (English by default).
+// ?lang=hy | ru | en in the URL also works. The 🌐 button changes it.
+const startLang = window.PlaySettings ? PlaySettings.get("lang") : new URLSearchParams(location.search).get("lang");
+startGame(LANGS[startLang] ? startLang : "en");
 </script>
 </body>
 </html>

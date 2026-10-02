@@ -6,7 +6,7 @@
   <title>Quick Sums · Play &amp; Learn</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700;800&family=Noto+Sans+Armenian:wght@500;600;700;800&display=swap">
   <link rel="stylesheet" href="../shared/game.css">
   <style>
     .sum-dots { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 14px; margin-top: 14px; }
@@ -19,6 +19,7 @@
 <body>
   <div id="game"></div>
 
+  <script src="../../js/settings.js"></script>
   <script src="../../js/games-data.js"></script>
   <script src="../shared/engine.js"></script>
   <script>
@@ -27,14 +28,22 @@
     GameKit.start({
       id: "quick-sums",
       rounds: 10,
-      makeQuestion: function () {
+      makeQuestion: function (lang) {
         var a = GameKit.randInt(1, 9);
         var b = GameKit.randInt(1, 9);
         var sum = a + b;
         return {
           key: a + "+" + b,
-          prompt: "What is " + a + " + " + b + "?",
-          say: "What is " + a + " plus " + b + "?",
+          prompt: GameKit.tr({
+            en: "What is " + a + " + " + b + "?",
+            hy: "Որքա՞ն է " + a + " + " + b + "-ը",
+            ru: "Сколько будет " + a + " + " + b + "?"
+          }),
+          say: GameKit.tr({
+            en: "What is " + a + " plus " + b + "?",
+            hy: "Որքա՞ն է " + a + " գումարած " + b + "-ը",
+            ru: "Сколько будет " + a + " плюс " + b + "?"
+          }),
           visual:
             '<div><div class="v-big-text">' + a + " + " + b + " = ?</div>" +
             '<div class="sum-dots">' + dots(a, "dots--a") + '<span class="plus">+</span>' + dots(b, "dots--b") + "</div></div>",

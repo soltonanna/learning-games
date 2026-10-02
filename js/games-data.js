@@ -1,6 +1,9 @@
 /**
  * GAME CATALOG — the only file you need to edit to add a game to the dashboard.
  *
+ * Every text is written in 3 languages: { en: "...", hy: "...", ru: "..." }.
+ * English is the default and is used if a translation is missing.
+ *
  * THEMES
  *   id     unique key, referenced by games[].theme
  *   name   label shown on chips and section headings
@@ -15,7 +18,7 @@
  *   icon         emoji used as the card preview (used when no image is set)
  *   image        optional — path to a preview image, overrides the icon
  *   description  one short sentence for the card
- *   ages         optional — e.g. "4–6"
+ *   ages         e.g. "4–5" or "7+". Used by the age filter. If left out, the game counts as "7+".
  *   url          page that opens when the card is clicked
  *   status       optional — "soon" shows the card greyed-out and not clickable
  *
@@ -23,104 +26,149 @@
  */
 window.LEARNING_GAMES = {
   themes: [
-    { id: "math",      name: "Math",        icon: "🔢", color: "#FF7A30", soft: "#FFF0E5" },
-    { id: "geography", name: "Geography",   icon: "🌍", color: "#1FAA6B", soft: "#E3F7EC" },
-    { id: "languages", name: "Languages",   icon: "🔤", color: "#7C5CFF", soft: "#EFEBFF" },
-    { id: "science",   name: "Science",     icon: "🔬", color: "#169BDB", soft: "#E2F3FB" },
-    { id: "art",       name: "Art & Music", icon: "🎨", color: "#EC4C8A", soft: "#FDE8F0" }
+    { id: "math",      icon: "🔢", color: "#FF7A30", soft: "#FFF0E5",
+      name: { en: "Math", hy: "Մաթեմատիկա", ru: "Математика" } },
+    { id: "geography", icon: "🌍", color: "#1FAA6B", soft: "#E3F7EC",
+      name: { en: "Geography", hy: "Աշխարհագրություն", ru: "География" } },
+    { id: "languages", icon: "🔤", color: "#7C5CFF", soft: "#EFEBFF",
+      name: { en: "Languages", hy: "Լեզուներ", ru: "Языки" } },
+    { id: "science",   icon: "🔬", color: "#169BDB", soft: "#E2F3FB",
+      name: { en: "Science", hy: "Գիտություն", ru: "Наука" } },
+    { id: "art",       icon: "🎨", color: "#EC4C8A", soft: "#FDE8F0",
+      name: { en: "Art & Music", hy: "Արվեստ և երաժշտություն", ru: "Искусство и музыка" } }
   ],
 
   games: [
     {
       id: "count-fruits",
-      title: "Count the Fruits",
       theme: "math",
       icon: "🍎",
-      description: "Count the fruits in the basket and tap the right number.",
       ages: "3–5",
-      url: "games/count-fruits/index.html"
+      url: "games/count-fruits/index.html",
+      title: { en: "Count the Fruits", hy: "Հաշվիր մրգերը", ru: "Посчитай фрукты" },
+      description: {
+        en: "Count the fruits in the basket and tap the right number.",
+        hy: "Հաշվի՛ր զամբյուղի մրգերը և սեղմի՛ր ճիշտ թիվը։",
+        ru: "Посчитай фрукты в корзинке и нажми на правильное число."
+      }
     },
     {
       id: "quick-sums",
-      title: "Quick Sums",
       theme: "math",
       icon: "➕",
-      description: "Add two numbers together — the dots help you count.",
-      ages: "5–7",
-      url: "games/quick-sums/index.html"
+      ages: "4–5",
+      url: "games/quick-sums/index.html",
+      title: { en: "Quick Sums", hy: "Արագ գումարում", ru: "Быстрый счёт" },
+      description: {
+        en: "Add two numbers together — the dots help you count.",
+        hy: "Գումարի՛ր երկու թիվ․ կետերը կօգնեն հաշվել։",
+        ru: "Сложи два числа — точки помогут посчитать."
+      }
     },
     {
       id: "flag-detective",
-      title: "Flag Detective",
       theme: "geography",
       icon: "🚩",
-      description: "Look at the flag and find which country it belongs to.",
       ages: "6–9",
-      url: "games/flag-detective/index.html"
+      url: "games/flag-detective/index.html",
+      title: { en: "Flag Detective", hy: "Դրոշների խուզարկու", ru: "Детектив флагов" },
+      description: {
+        en: "Look at the flag and find which country it belongs to.",
+        hy: "Նայի՛ր դրոշին և գտի՛ր, թե որ երկրինն է։",
+        ru: "Посмотри на флаг и найди, какой стране он принадлежит."
+      }
     },
     {
       id: "capital-cities",
-      title: "Capital Cities",
       theme: "geography",
       icon: "🏙️",
-      description: "Every country has a capital city. Can you name them?",
       ages: "7–10",
-      url: "games/capital-cities/index.html"
+      url: "games/capital-cities/index.html",
+      title: { en: "Capital Cities", hy: "Մայրաքաղաքներ", ru: "Столицы" },
+      description: {
+        en: "Every country has a capital city. Can you name them?",
+        hy: "Ամեն երկիր ունի մայրաքաղաք։ Կարո՞ղ ես անվանել դրանք։",
+        ru: "У каждой страны есть столица. Сможешь их назвать?"
+      }
     },
     {
       id: "first-letter",
-      title: "First Letter",
       theme: "languages",
       icon: "🅰️",
-      description: "Say the word out loud and pick the letter it starts with.",
       ages: "4–6",
-      url: "games/first-letter/index.html"
+      url: "games/first-letter/index.html",
+      title: { en: "First Letter", hy: "Առաջին տառը", ru: "Первая буква" },
+      description: {
+        en: "Say the word out loud and pick the letter it starts with.",
+        hy: "Բարձրաձայն ասա՛ բառը և ընտրի՛ր այն տառը, որով այն սկսվում է։",
+        ru: "Назови слово вслух и выбери, с какой буквы оно начинается."
+      }
     },
     {
       id: "color-words",
-      title: "Color Words",
       theme: "languages",
       icon: "🖍️",
-      description: "Learn the names of colours in English.",
       ages: "3–5",
-      url: "games/color-words/index.html"
+      url: "games/color-words/index.html",
+      title: { en: "Color Words", hy: "Գույների անունները", ru: "Названия цветов" },
+      description: {
+        en: "Learn the names of colours.",
+        hy: "Սովորի՛ր գույների անունները։",
+        ru: "Выучи, как называются цвета."
+      }
     },
     {
       id: "spin-wheel",
-      title: "Spin the Wheel",
       theme: "languages",
       icon: "🎡",
-      description: "Spin the alphabet wheel and say words that start with the letter. Armenian, Russian or English!",
       ages: "4–7",
-      url: "games/spin-wheel/index.html"
+      url: "games/spin-wheel/index.html",
+      title: { en: "Spin the Wheel", hy: "Պտտիր անիվը", ru: "Крути колесо" },
+      description: {
+        en: "Spin the alphabet wheel and say words that start with the letter.",
+        hy: "Պտտի՛ր այբուբենի անիվը և ասա՛ բառեր ընկած տառով։",
+        ru: "Крути колесо с буквами и называй слова на выпавшую букву."
+      }
     },
     {
       id: "animal-homes",
-      title: "Animal Homes",
       theme: "science",
       icon: "🐬",
-      description: "Where does each animal live? Ocean, jungle, farm or snow?",
       ages: "4–7",
-      url: "games/animal-homes/index.html"
+      url: "games/animal-homes/index.html",
+      title: { en: "Animal Homes", hy: "Ո՞վ որտեղ է ապրում", ru: "Кто где живёт?" },
+      description: {
+        en: "Where does each animal live? Ocean, jungle, farm or snow?",
+        hy: "Որտե՞ղ է ապրում ամեն կենդանի՝ օվկիանոսում, ջունգլիներում, ագարակում, թե՞ ձյան մեջ։",
+        ru: "Где живёт каждое животное? В океане, в джунглях, на ферме или среди льдов?"
+      }
     },
     {
       id: "sink-or-float",
-      title: "Sink or Float?",
       theme: "science",
       icon: "🛟",
-      description: "Guess what happens when you drop things into water.",
       ages: "4–7",
-      url: "games/sink-or-float/index.html"
+      url: "games/sink-or-float/index.html",
+      title: { en: "Sink or Float?", hy: "Կսուզվի՞, թե՞ կլողա", ru: "Тонет или плавает?" },
+      description: {
+        en: "Guess what happens when you drop things into water.",
+        hy: "Գուշակի՛ր, թե ինչ կլինի, եթե իրը գցես ջուրը։",
+        ru: "Угадай, что будет, если бросить предмет в воду."
+      }
     },
     {
       id: "color-mixer",
-      title: "Color Mixer",
       theme: "art",
       icon: "🎨",
-      description: "Mix two paints and discover a brand-new colour.",
       ages: "4–7",
       url: "games/color-mixer/index.html",
-      status: "soon"
+      status: "soon",
+      title: { en: "Color Mixer", hy: "Խառնիր ներկերը", ru: "Смешай краски" },
+      description: {
+        en: "Mix two paints and discover a brand-new colour.",
+        hy: "Խառնի՛ր երկու ներկ և ստացի՛ր նոր գույն։",
+        ru: "Смешай две краски и открой новый цвет."
+      }
     }
   ]
 };

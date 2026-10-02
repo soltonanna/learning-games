@@ -7,8 +7,8 @@
   --radius: 24px;
   --shadow: 0 2px 0 rgba(43, 35, 64, .06), 0 10px 24px -12px rgba(43, 35, 64, .18);
   --shadow-hover: 0 4px 0 rgba(43, 35, 64, .06), 0 22px 36px -16px rgba(43, 35, 64, .28);
-  --font-display: "Baloo 2", ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", system-ui, sans-serif;
-  --font-body: "Nunito", ui-rounded, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Baloo 2", "Nunito", "Noto Sans Armenian", ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", system-ui, sans-serif;
+  --font-body: "Nunito", "Noto Sans Armenian", ui-rounded, system-ui, -apple-system, "Segoe UI", sans-serif;
   color-scheme: light;
 }
 
@@ -47,6 +47,42 @@ body {
   border-bottom-left-radius: 40px;
   border-bottom-right-radius: 40px;
 }
+
+.hero__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* ---------- Language switch ---------- */
+
+.lang {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.lang__btn {
+  min-width: 52px;
+  min-height: 40px;
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.lang__btn:hover { color: var(--ink); background: #F6F1EA; }
+.lang__btn.is-active { background: var(--ink); color: #fff; }
+.lang__btn:focus-visible { outline: 3px solid #7C5CFF; outline-offset: 2px; }
 
 .brand {
   display: inline-flex;
@@ -145,6 +181,93 @@ body {
 .chip.is-active .chip__count {
   background: rgba(255, 255, 255, .25);
   color: #fff;
+}
+
+.chip.is-empty:not(.is-active) { opacity: .5; }
+
+/* ---------- Age + thinking-time settings ---------- */
+
+.settings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: 22px;
+  background: #fff;
+  border: 2px solid var(--line);
+}
+
+.setting {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.setting__label {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+.seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: #F6F1EA;
+}
+
+.seg__btn {
+  min-width: 48px;
+  min-height: 38px;
+  padding: 4px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.seg__btn:hover { color: var(--ink); background: #fff; }
+.seg__btn.is-active { background: #7C5CFF; color: #fff; box-shadow: 0 2px 0 rgba(43, 35, 64, .12); }
+.seg__btn:focus-visible { outline: 3px solid #7C5CFF; outline-offset: 2px; }
+
+/* ---------- Empty state ---------- */
+
+.empty {
+  margin-top: 40px;
+  padding: 40px 20px;
+  border-radius: var(--radius);
+  background: #fff;
+  border: 2px dashed var(--line);
+  text-align: center;
+  color: var(--ink-soft);
+  font-weight: 700;
+  font-size: 17px;
+}
+.empty__icon { font-size: 52px; line-height: 1; margin-bottom: 8px; }
+.empty p { margin: 0 0 16px; }
+.empty__btn {
+  min-height: 44px;
+  padding: 8px 20px;
+  border: 0;
+  border-radius: 999px;
+  background: #7C5CFF;
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 16px;
+  cursor: pointer;
 }
 
 /* ---------- Theme sections ---------- */
@@ -344,6 +467,14 @@ a.card:hover .card__icon { transform: scale(1.12) rotate(-6deg); }
   .filters::-webkit-scrollbar { display: none; }
   .chip { scroll-snap-align: start; font-size: 16px; }
 
+  .brand { font-size: 19px; }
+  .brand__mark { width: 40px; height: 40px; font-size: 22px; }
+  .lang__btn { min-width: 44px; padding: 4px 8px; font-size: 14px; }
+
+  .settings { padding: 12px; gap: 12px; }
+  .setting { width: 100%; justify-content: space-between; }
+  .seg__btn { min-width: 42px; padding: 4px 10px; font-size: 14px; }
+
   .theme { margin-top: 28px; }
   .theme__title { font-size: 24px; }
 
@@ -359,6 +490,7 @@ a.card:hover .card__icon { transform: scale(1.12) rotate(-6deg); }
 
 @media (max-width: 360px) {
   .grid { grid-template-columns: 1fr; }
+  .brand__name { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

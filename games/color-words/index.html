@@ -6,7 +6,7 @@
   <title>Color Words · Play &amp; Learn</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700;800&family=Noto+Sans+Armenian:wght@500;600;700;800&display=swap">
   <link rel="stylesheet" href="../shared/game.css">
   <style>
     .swatch { width: 150px; height: 150px; border-radius: 42% 58% 55% 45% / 50% 45% 55% 50%; box-shadow: inset 0 -10px 0 rgba(0,0,0,.12), 0 10px 20px -10px rgba(0,0,0,.35); }
@@ -16,28 +16,38 @@
 <body>
   <div id="game"></div>
 
+  <script src="../../js/settings.js"></script>
   <script src="../../js/games-data.js"></script>
   <script src="../shared/engine.js"></script>
   <script>
     var COLORS = [
-      ["red", "#EF4444"], ["blue", "#3B82F6"], ["green", "#22C55E"], ["yellow", "#FACC15"],
-      ["orange", "#F97316"], ["purple", "#A855F7"], ["pink", "#F472B6"], ["brown", "#8B5A2B"],
-      ["black", "#1F1B2E"], ["white", "#FFFFFF"], ["gray", "#9CA3AF"]
+      ["#EF4444", { en: "red", hy: "կարմիր", ru: "красный" }],
+      ["#3B82F6", { en: "blue", hy: "կապույտ", ru: "синий" }],
+      ["#22C55E", { en: "green", hy: "կանաչ", ru: "зелёный" }],
+      ["#FACC15", { en: "yellow", hy: "դեղին", ru: "жёлтый" }],
+      ["#F97316", { en: "orange", hy: "նարնջագույն", ru: "оранжевый" }],
+      ["#A855F7", { en: "purple", hy: "մանուշակագույն", ru: "фиолетовый" }],
+      ["#F472B6", { en: "pink", hy: "վարդագույն", ru: "розовый" }],
+      ["#8B5A2B", { en: "brown", hy: "շագանակագույն", ru: "коричневый" }],
+      ["#1F1B2E", { en: "black", hy: "սև", ru: "чёрный" }],
+      ["#FFFFFF", { en: "white", hy: "սպիտակ", ru: "белый" }],
+      ["#9CA3AF", { en: "gray", hy: "մոխրագույն", ru: "серый" }]
     ];
-    var NAMES = COLORS.map(function (c) { return c[0]; });
 
     GameKit.start({
       id: "color-words",
       rounds: 10,
-      makeQuestion: function () {
+      makeQuestion: function (lang) {
+        var names = COLORS.map(function (c) { return GameKit.tr(c[1]); });
         var c = GameKit.pick(COLORS);
+        var name = GameKit.tr(c[1]);
         return {
-          key: c[0],
-          prompt: "What color is this?",
-          visual: '<div class="swatch' + (c[0] === "white" ? " swatch--light" : "") + '" style="background:' + c[1] + '"></div>',
-          choices: GameKit.withDistractors(c[0], NAMES, 4),
-          answer: c[0],
-          explain: "It is " + c[0] + "."
+          key: c[1].en,
+          prompt: GameKit.tr({ en: "What color is this?", hy: "Ի՞նչ գույն է սա", ru: "Какой это цвет?" }),
+          visual: '<div class="swatch' + (c[1].en === "white" ? " swatch--light" : "") + '" style="background:' + c[0] + '"></div>',
+          choices: GameKit.withDistractors(name, names, 4),
+          answer: name,
+          explain: GameKit.tr({ en: "It is " + name + ".", hy: "Սա " + name + " է։", ru: "Это " + name + "." })
         };
       }
     });

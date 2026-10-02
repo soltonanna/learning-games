@@ -6,7 +6,7 @@
   <title>Sink or Float? · Play &amp; Learn</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700;800&family=Noto+Sans+Armenian:wght@500;600;700;800&display=swap">
   <link rel="stylesheet" href="../shared/game.css">
   <style>
     .tank { position: relative; width: 100%; max-width: 360px; }
@@ -17,30 +17,56 @@
 <body>
   <div id="game"></div>
 
+  <script src="../../js/settings.js"></script>
   <script src="../../js/games-data.js"></script>
   <script src="../shared/engine.js"></script>
   <script>
-    var FLOATS = "🛟 Floats";
-    var SINKS = "⬇️ Sinks";
+    var FLOATS = { en: "🛟 Floats", hy: "🛟 Կլողա",  ru: "🛟 Плавает" };
+    var SINKS  = { en: "⬇️ Sinks",  hy: "⬇️ Կսուզվի", ru: "⬇️ Тонет" };
+    // [emoji, floats?, name]. Armenian names include the article (-ը / -ն).
     var THINGS = [
-      ["🪨", "rock", false], ["🪶", "feather", true], ["🪙", "coin", false], ["🦆", "rubber duck", true],
-      ["🍎", "apple", true], ["🔑", "key", false], ["🍃", "leaf", true], ["🏐", "beach ball", true],
-      ["🥄", "spoon", false], ["⛵", "boat", true], ["⚓", "anchor", false], ["🪵", "log", true],
-      ["🧊", "ice cube", true], ["🔩", "bolt", false], ["🧽", "sponge", true], ["💍", "ring", false]
+      ["🪨", false, { en: "rock", hy: "քարը", ru: "камень" }],
+      ["🪶", true,  { en: "feather", hy: "փետուրը", ru: "перо" }],
+      ["🪙", false, { en: "coin", hy: "մետաղադրամը", ru: "монета" }],
+      ["🦆", true,  { en: "rubber duck", hy: "ռետինե բադիկը", ru: "резиновая уточка" }],
+      ["🍎", true,  { en: "apple", hy: "խնձորը", ru: "яблоко" }],
+      ["🔑", false, { en: "key", hy: "բանալին", ru: "ключ" }],
+      ["🍃", true,  { en: "leaf", hy: "տերևը", ru: "листик" }],
+      ["🏐", true,  { en: "beach ball", hy: "գնդակը", ru: "пляжный мяч" }],
+      ["🥄", false, { en: "spoon", hy: "գդալը", ru: "ложка" }],
+      ["⛵", true,  { en: "boat", hy: "նավակը", ru: "кораблик" }],
+      ["⚓", false, { en: "anchor", hy: "խարիսխը", ru: "якорь" }],
+      ["🪵", true,  { en: "log", hy: "գերանը", ru: "бревно" }],
+      ["🧊", true,  { en: "ice cube", hy: "սառույցի կտորը", ru: "кубик льда" }],
+      ["🔩", false, { en: "bolt", hy: "պտուտակը", ru: "болт" }],
+      ["🧽", true,  { en: "sponge", hy: "սպունգը", ru: "губка" }],
+      ["💍", false, { en: "ring", hy: "մատանին", ru: "колечко" }]
     ];
+
+    function cap(s) { return s.charAt(0).toLocaleUpperCase() + s.slice(1); }
 
     GameKit.start({
       id: "sink-or-float",
       rounds: 10,
-      makeQuestion: function () {
+      makeQuestion: function (lang) {
         var t = GameKit.pick(THINGS);
+        var floats = t[1];
+        var n = t[2];
         return {
-          key: t[1],
-          prompt: "Does the " + t[1] + " sink or float?",
+          key: n.en,
+          prompt: GameKit.tr({
+            en: "Does the " + n.en + " sink or float?",
+            hy: cap(n.hy) + " կսուզվի՞, թե՞ կլողա",
+            ru: cap(n.ru) + " тонет или плавает?"
+          }),
           visual: '<div class="tank"><div class="v-emoji">' + t[0] + '</div><div class="water"></div></div>',
-          choices: [FLOATS, SINKS],
-          answer: t[2] ? FLOATS : SINKS,
-          explain: "The " + t[1] + (t[2] ? " floats!" : " sinks!")
+          choices: [GameKit.tr(FLOATS), GameKit.tr(SINKS)],
+          answer: GameKit.tr(floats ? FLOATS : SINKS),
+          explain: GameKit.tr({
+            en: "The " + n.en + (floats ? " floats!" : " sinks!"),
+            hy: cap(n.hy) + (floats ? " կլողա։" : " կսուզվի։"),
+            ru: cap(n.ru) + (floats ? " плавает!" : " тонет!")
+          })
         };
       }
     });
