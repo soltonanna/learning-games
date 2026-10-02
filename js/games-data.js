@@ -187,6 +187,19 @@ window.LEARNING_GAMES = {
       }
     },
     {
+      id: "tic-tac-toe",
+      theme: "logic",
+      icon: "⭕",
+      ages: "4+",
+      url: "games/tic-tac-toe/index.html",
+      title: { en: "Tic-Tac-Toe", hy: "Խաչիկ-նոլիկ", ru: "Крестики-нолики" },
+      description: {
+        en: "Get three in a row before the robot does — or play with a friend! 3 robot levels.",
+        hy: "Շարի՛ր երեքը մեկ գծով ռոբոտից շուտ, կամ խաղա՛ ընկերոջ հետ։ Ռոբոտի 3 մակարդակ։",
+        ru: "Собери три в ряд раньше робота — или играй с другом! 3 уровня робота."
+      }
+    },
+    {
       id: "color-mixer",
       theme: "art",
       icon: "🎨",

@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tic-Tac-Toe · Play &amp; Learn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700;800&family=Noto+Sans+Armenian:wght@500;600;700;800&display=swap">
+  <link rel="stylesheet" href="../shared/game.css">
+  <style>
+    :root {
+      --x: #12A594;   /* first player's colour  */
+      --o: #FF7A30;   /* second player's colour */
+    }
+
+    .tt-rules {
+      margin: 6px 0 0;
+      color: var(--ink-soft);
+      font-weight: 600;
+      font-size: 16px;
+      text-align: center;
+    }
+
+    /* ---------- Scoreboard ---------- */
+    .tt-score {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 8px;
+      width: min(420px, 100%);
+      margin: 16px auto 0;
+    }
+    .tt-side {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 8px 10px;
+      border-radius: 18px;
+      border: 3px solid var(--line);
+      background: #fff;
+      transition: border-color .2s ease, transform .2s ease, background .2s ease;
+      min-width: 0;
+    }
+    .tt-side__name {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      max-width: 100%;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      text-align: center;
+      line-height: 1.15;
+    }
+    .tt-side__num {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 30px;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .tt-side--x .tt-side__num { color: var(--x); }
+    .tt-side--o .tt-side__num { color: var(--o); }
+    .tt-side--draw { border-style: dashed; }
+    .tt-side--draw .tt-side__num { color: var(--ink-soft); }
+    .tt-side.is-turn { transform: translateY(-3px); }
+    .tt-side--x.is-turn { border-color: var(--x); background: color-mix(in srgb, var(--x) 10%, #fff); }
+    .tt-side--o.is-turn { border-color: var(--o); background: color-mix(in srgb, var(--o) 10%, #fff); }
+    .tt-mini { font-size: 18px; line-height: 1; }
+    .tt-mini.is-x { color: var(--x); }
+    .tt-mini.is-o { color: var(--o); }
+
+    /* ---------- Turn line ---------- */
+    .tt-turn {
+      min-height: 34px;
+      margin: 14px 0 0;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 22px;
+      text-align: center;
+    }
+    .tt-turn .tt-dots span { display: inline-block; animation: tt-dot 1s ease infinite; }
+    .tt-turn .tt-dots span:nth-child(2) { animation-delay: .15s; }
+    .tt-turn .tt-dots span:nth-child(3) { animation-delay: .3s; }
+    @keyframes tt-dot { 50% { transform: translateY(-5px); } }
+
+    /* ---------- Board ---------- */
+    .tt-board {
+      --size: min(360px, calc(100vw - 60px));
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      width: var(--size);
+      aspect-ratio: 1;
+      margin: 12px auto 0;
+      padding: 10px;
+      border-radius: 26px;
+      background: var(--soft);
+      touch-action: manipulation;
+    }
+    .tt-cell {
+      display: grid;
+      place-items: center;
+      min-width: 0;
+      padding: 0;
+      border: 3px solid var(--line);
+      border-bottom-width: 6px;
+      border-radius: 18px;
+      background: #fff;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: calc(var(--size) / 3 * .62);
+      line-height: 1;
+      cursor: pointer;
+      transition: transform .12s ease, border-color .12s ease, opacity .3s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tt-board--pics .tt-cell { font-size: calc(var(--size) / 3 * .5); }
+    .tt-cell:hover:not(:disabled) { border-color: var(--c); transform: translateY(-2px); }
+    .tt-cell:active:not(:disabled) { transform: translateY(2px); border-bottom-width: 3px; }
+    .tt-cell:focus-visible { outline: 4px solid var(--c); outline-offset: 2px; }
+    .tt-cell:disabled { cursor: default; }
+    .tt-cell.is-x { color: var(--x); }
+    .tt-cell.is-o { color: var(--o); }
+    .tt-cell .tt-mark { display: block; animation: tt-pop .35s cubic-bezier(.3, 1.6, .5, 1) both; }
+    @keyframes tt-pop { from { transform: scale(0) rotate(-25deg); opacity: 0; } }
+
+    /* A faint preview of your mark when hovering an empty square. */
+    @media (hover: hover) {
+      .tt-cell:empty:not(:disabled):hover::after {
+        content: attr(data-ghost);
+        opacity: .18;
+        color: var(--ghost, var(--ink));
+      }
+    }
+
+    .tt-board.is-over .tt-cell:not(.is-win) { opacity: .4; }
+    .tt-cell.is-win { animation: tt-win .6s ease both; }
+    .tt-cell.is-win.is-x { border-color: var(--x); background: color-mix(in srgb, var(--x) 16%, #fff); }
+    .tt-cell.is-win.is-o { border-color: var(--o); background: color-mix(in srgb, var(--o) 16%, #fff); }
+    @keyframes tt-win { 40% { transform: scale(1.12); } }
+    .tt-board.is-draw .tt-cell { animation: g-shake .5s ease; opacity: .7; }
+
+    .tt-tools {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .tt-tool {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 48px;
+      padding: 6px 18px;
+      border-radius: 999px;
+      border: 3px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 17px;
+      cursor: pointer;
+    }
+    .tt-tool:hover:not(:disabled) { border-color: var(--c); }
+    .tt-tool--primary { background: var(--c); border-color: var(--c); color: #fff; }
+    .tt-tool--primary:hover { filter: brightness(1.05); }
+    .tt-tool[hidden] { display: none; }
+
+    @media (max-width: 600px) {
+      .tt-board { --size: calc(100vw - 52px); gap: 8px; padding: 8px; }
+      .tt-side__name { font-size: 14px; }
+      .tt-side__num { font-size: 26px; }
+      .tt-turn { font-size: 19px; }
+      .tt-tool { font-size: 15px; padding: 6px 14px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .tt-cell .tt-mark, .tt-cell.is-win, .tt-board.is-draw .tt-cell, .tt-turn .tt-dots span { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+
+  <script src="../../js/settings.js"></script>
+  <script src="../../js/games-data.js"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    var S = window.PlaySettings;
+    var GAME_ID = "tic-tac-toe";
+
+    /** Marks for each "pieces" setting: [first player, second player]. */
+    var PIECES = {
+      xo:   ["X", "O"],
+      pets: ["🐱", "🐶"]
+    };
+
+    /** The 8 ways to make three in a row. */
+    var LINES = [
+      [0, 1, 2], [3, 4, 5], [6, 7, 8],   // rows
+      [0, 3, 6], [1, 4, 7], [2, 5, 8],   // columns
+      [0, 4, 8], [2, 4, 6]               // diagonals
+    ];
+
+    /**
+     * How the robot plays on each level:
+     *   smart  chance to make its best move (otherwise it picks a random square)
+     *   Easy   misses a lot — great for learning the rules
+     *   Medium wins when it can and blocks your three-in-a-row most of the time
+     *   Hard   plays perfectly — it never loses, so a draw is a great result
+     */
+    var ROBOT = {
+      easy:   { smart: 0.35, perfect: false },
+      medium: { smart: 0.8,  perfect: false },
+      hard:   { smart: 1,    perfect: true }
+    };
+
+    var UI = {
+      allGames: { en: "All games", hy: "Բոլոր խաղերը", ru: "Все игры" },
+      settings: { en: "Settings", hy: "Կարգավորումներ", ru: "Настройки" },
+      language: { en: "Language", hy: "Լեզու", ru: "Язык" },
+      opponent: { en: "Play against", hy: "Մրցակից", ru: "Соперник" },
+      robot:    { en: "Robot", hy: "Ռոբոտ", ru: "Робот" },
+      friend:   { en: "Friend", hy: "Ընկեր", ru: "Друг" },
+      level:    { en: "Robot level", hy: "Ռոբոտի մակարդակը", ru: "Уровень робота" },
+      pieces:   { en: "Pieces", hy: "Նշաններ", ru: "Фишки" },
+      restartNote: {
+        en: "Changing a setting starts a new game and resets the score.",
+        hy: "Կարգավորումը փոխելիս նոր խաղ կսկսվի, և հաշիվը կզրոյանա։",
+        ru: "После изменения начнётся новая игра, а счёт обнулится."
+      },
+      title: { en: "Get three in a row!", hy: "Շարի՛ր երեքը մեկ գծով։", ru: "Собери три в ряд!" },
+      rules: {
+        en: "Take turns. The first to put 3 marks in a line — across, down or corner to corner — wins!",
+        hy: "Քայլե՛ք հերթով։ Ով առաջինը իր 3 նշանը դնի մեկ գծով՝ հորիզոնական, ուղղահայաց կամ անկյունից անկյուն, նա կհաղթի։",
+        ru: "Ходите по очереди. Кто первым поставит 3 своих знака в линию — поперёк, сверху вниз или по диагонали, — тот победил!"
+      },
+      you:     { en: "You", hy: "Դու", ru: "Ты" },
+      draws:   { en: "Draws", hy: "Ոչ-ոքի", ru: "Ничьи" },
+      player1: { en: "Player 1", hy: "Խաղացող 1", ru: "Игрок 1" },
+      player2: { en: "Player 2", hy: "Խաղացող 2", ru: "Игрок 2" },
+      yourTurn:  { en: "Your turn!", hy: "Քո հերթն է։", ru: "Твой ход!" },
+      robotTurn: { en: "Robot is thinking", hy: "Ռոբոտը մտածում է", ru: "Робот думает" },
+      playerTurn: { en: "{p}, your turn!", hy: "{p}, քո հերթն է։", ru: "{p}, твой ход!" },
+      youWin: {
+        en: ["You win! 🎉", "Three in a row — you did it! 🎉", "Super move! You win! 🎉"],
+        hy: ["Դու հաղթեցիր։ 🎉", "Երեքը մեկ գծով․ ապրե՛ս։ 🎉", "Սուպեր քայլ էր։ Դու հաղթեցիր։ 🎉"],
+        ru: ["Победа! 🎉", "Три в ряд — у тебя получилось! 🎉", "Супер-ход! Ты победил! 🎉"]
+      },
+      robotWin: {
+        en: "The robot wins this time. Try again!",
+        hy: "Այս անգամ ռոբոտը հաղթեց։ Նորից փորձի՛ր։",
+        ru: "В этот раз победил робот. Попробуй ещё!"
+      },
+      playerWin: { en: "{p} wins! 🎉", hy: "Հաղթեց {p}-ը։ 🎉", ru: "Победил {p}! 🎉" },
+      draw: { en: "It's a draw — nobody wins!", hy: "Ոչ-ոքի․ ոչ ոք չհաղթեց։", ru: "Ничья — никто не победил!" },
+      drawHard: {
+        en: "A draw against the Hard robot — that's a great result!",
+        hy: "Ոչ-ոքի «Դժվար» ռոբոտի հետ․ սա հիանալի արդյունք է։",
+        ru: "Ничья с роботом на уровне «Сложно» — это отличный результат!"
+      },
+      tips: {
+        en: ["Tip: the middle square is a strong first move!",
+             "Tip: watch the robot's two-in-a-row and block it!",
+             "Tip: try to make two lines at once — the robot can only block one!"],
+        hy: ["Խորհուրդ․ կենտրոնի վանդակը ուժեղ առաջին քայլ է։",
+             "Խորհուրդ․ հետևի՛ր, որ ռոբոտը երկուսը մեկ գծով չշարի, և փակի՛ր նրա ճանապարհը։",
+             "Խորհուրդ․ փորձի՛ր միանգամից երկու գիծ պատրաստել․ ռոբոտը միայն մեկը կարող է փակել։"],
+        ru: ["Совет: центральная клетка — сильный первый ход!",
+             "Совет: следи, когда у робота два в ряд, и закрывай третью клетку!",
+             "Совет: попробуй сделать две линии сразу — робот сможет закрыть только одну!"]
+      },
+      starts: { en: "{p} starts this round.", hy: "Այս խաղը սկսում է {p}-ը։", ru: "В этом раунде начинает {p}." },
+      startsYou: { en: "You start this round.", hy: "Այս խաղը սկսում ես դու։", ru: "В этом раунде начинаешь ты." },
+      startsRobot: { en: "The robot starts this round.", hy: "Այս խաղը սկսում է ռոբոտը։", ru: "В этом раунде начинает робот." },
+      nextRound: { en: "Next round", hy: "Հաջորդ խաղը", ru: "Следующий раунд" },
+      restart:   { en: "Start over", hy: "Սկսել նորից", ru: "Начать заново" },
+      resetScore: { en: "Reset score", hy: "Զրոյացնել հաշիվը", ru: "Сбросить счёт" },
+      cell: { en: "Square {n}", hy: "Վանդակ {n}", ru: "Клетка {n}" }
+    };
+    function t(key) { return S.tr(UI[key]); }
+    function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
+    function esc(s) {
+      return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    /* ---------- Remembered choices (opponent, pieces) ---------- */
+    var mem = {};
+    function getPref(key, allowed, fallback) {
+      var v;
+      try { v = window.localStorage.getItem("playlearn-ttt-" + key); } catch (e) { v = mem[key]; }
+      return allowed.indexOf(v) !== -1 ? v : fallback;
+    }
+    function setPref(key, v) {
+      mem[key] = v;
+      try { window.localStorage.setItem("playlearn-ttt-" + key, v); } catch (e) { /* private mode */ }
+    }
+
+    /* ======================================================================
+       Board logic
+       ====================================================================== */
+
+    /** Returns { who: 0|1, line: [a,b,c] } for a finished line, "draw", or null. */
+    function result(b) {
+      for (var i = 0; i < LINES.length; i++) {
+        var L = LINES[i];
+        if (b[L[0]] !== null && b[L[0]] === b[L[1]] && b[L[0]] === b[L[2]]) return { who: b[L[0]], line: L };
+      }
+      for (var j = 0; j < 9; j++) if (b[j] === null) return null;
+      return "draw";
+    }
+
+    function empties(b) {
+      var out = [];
+      for (var i = 0; i < 9; i++) if (b[i] === null) out.push(i);
+      return out;
+    }
+
+    /** A square that completes three in a row for `who`, or -1. */
+    function finishingMove(b, who) {
+      for (var i = 0; i < LINES.length; i++) {
+        var L = LINES[i], mine = 0, free = -1;
+        for (var k = 0; k < 3; k++) {
+          if (b[L[k]] === who) mine++;
+          else if (b[L[k]] === null) free = L[k];
+        }
+        if (mine === 2 && free !== -1) return free;
+      }
+      return -1;
+    }
+
+    /** Perfect play (minimax). Prefers quicker wins and slower losses. */
+    function minimax(b, me, turn, depth) {
+      var r = result(b);
+      if (r === "draw") return { score: 0 };
+      if (r) return { score: r.who === me ? 10 - depth : depth - 10 };
+      var best = null;
+      var moves = empties(b);
+      for (var i = 0; i < moves.length; i++) {
+        var m = moves[i];
+        b[m] = turn;
+        var s = minimax(b, me, 1 - turn, depth + 1).score;
+        b[m] = null;
+        if (!best || (turn === me ? s > best.score : s < best.score) ||
+            (s === best.score && Math.random() < 0.35)) {
+          best = { score: s, move: m };
+        }
+      }
+      return best;
+    }
+
+    function robotMove(b, me, level) {
+      var cfg = ROBOT[level] || ROBOT.easy;
+      var free = empties(b);
+      if (Math.random() > cfg.smart) return pick(free);
+      if (cfg.perfect) {
+        // On an empty board any corner or the centre is fine — skip the long search.
+        if (free.length === 9) return pick([0, 2, 4, 6, 8]);
+        return minimax(b.slice(), me, me, 0).move;
+      }
+      var win = finishingMove(b, me);
+      if (win !== -1) return win;
+      var block = finishingMove(b, 1 - me);
+      if (block !== -1) return block;
+      if (b[4] === null && Math.random() < 0.6) return 4;
+      return pick(free);
+    }
+
+    /* ======================================================================
+       Game
+       ====================================================================== */
+
+    var catalog = window.LEARNING_GAMES || { themes: [], games: [] };
+    var game = catalog.games.filter(function (g) { return g.id === GAME_ID; })[0] ||
+      { title: { en: "Tic-Tac-Toe" }, icon: "⭕", theme: "logic" };
+    var theme = catalog.themes.filter(function (th) { return th.id === game.theme; })[0] ||
+      { color: "#12A594", soft: "#E1F6F3" };
+    var home = "../../index.html" + (game.theme ? "#" + game.theme : "");
+    var root = document.getElementById("game");
+
+    document.documentElement.style.setProperty("--c", theme.color);
+    document.documentElement.style.setProperty("--soft", theme.soft);
+
+    var lang, level, mode, pieces, marks, state, els = {};
+    var robotTimer = null;
+    var score = { x: 0, o: 0, draw: 0 };
+    var firstPlayer = 0;   // who starts the current round (alternates every round)
+
+    /** Player 0 is always the child (vs robot) or Player 1 (vs friend). */
+    function name(p) {
+      if (mode === "robot") return p === 0 ? t("you") : t("robot");
+      return p === 0 ? t("player1") : t("player2");
+    }
+    function isRobot(p) { return mode === "robot" && p === 1; }
+
+    function seg(attr, items, current) {
+      return '<div class="g-seg" role="group">' + items.map(function (it) {
+        var on = String(it.value) === String(current);
+        return '<button type="button" class="g-seg__btn' + (on ? " is-active" : "") + '" data-' + attr + '="' + it.value + '"' +
+          ' aria-pressed="' + on + '"' + (it.lang ? ' lang="' + it.lang + '"' : "") + ">" + it.label + "</button>";
+      }).join("") + "</div>";
+    }
+
+    /* ----- Page shell ----- */
+
+    function build() {
+      stopRobot();
+      lang = S.get("lang");
+      level = S.getLevel(GAME_ID);
+      mode = getPref("mode", ["robot", "friend"], "robot");
+      pieces = getPref("pieces", ["xo", "pets"], "xo");
+      marks = PIECES[pieces];
+      var levelInfo = S.LEVELS.filter(function (l) { return l.id === level; })[0];
+      var title = S.tr(game.title);
+
+      document.documentElement.lang = lang;
+      document.title = title + " · Play & Learn";
+
+      root.innerHTML =
+        '<header class="g-top">' +
+          '<a class="g-back" href="' + home + '">' +
+            '<span aria-hidden="true">←</span> <span class="g-back__label">' + esc(t("allGames")) + "</span></a>" +
+          '<div class="g-title"><span aria-hidden="true">' + game.icon + "</span> " + esc(title) + "</div>" +
+          '<div class="g-right">' +
+            '<button class="g-gear" type="button" id="g-gear" aria-expanded="false" aria-controls="g-panel" title="' + esc(t("settings")) + '">' +
+              '<span aria-hidden="true">⚙️</span><span class="g-gear__lang">' + esc(S.langInfo(lang).label) + "</span>" +
+              '<span class="g-gear__level">' + (mode === "robot" ? levelInfo.icon : "👫") +
+                '<span class="g-gear__lvname"> ' + esc(mode === "robot" ? S.tr(levelInfo.name) : t("friend")) + "</span></span>" +
+            "</button>" +
+          "</div>" +
+          '<div class="g-panel" id="g-panel" hidden>' +
+            '<div class="g-panel__row"><span class="g-panel__label">🌐 ' + esc(t("language")) + "</span>" +
+              seg("lang", S.LANGS.map(function (l) { return { value: l.id, label: esc(l.label), lang: l.id }; }), lang) +
+            "</div>" +
+            '<div class="g-panel__row"><span class="g-panel__label">🎮 ' + esc(t("opponent")) + "</span>" +
+              seg("mode", [
+                { value: "robot", label: "🤖&nbsp;" + esc(t("robot")) },
+                { value: "friend", label: "👫&nbsp;" + esc(t("friend")) }
+              ], mode) +
+            "</div>" +
+            (mode === "robot"
+              ? '<div class="g-panel__row"><span class="g-panel__label">🎯 ' + esc(t("level")) + "</span>" +
+                  seg("level", S.LEVELS.map(function (l) {
+                    return { value: l.id, label: l.icon + "&nbsp;" + esc(S.tr(l.name)) };
+                  }), level) +
+                "</div>"
+              : "") +
+            '<div class="g-panel__row"><span class="g-panel__label">✏️ ' + esc(t("pieces")) + "</span>" +
+              seg("pieces", [
+                { value: "xo", label: "X&nbsp;O" },
+                { value: "pets", label: "🐱&nbsp;🐶" }
+              ], pieces) +
+            "</div>" +
+            '<p class="g-panel__note">' + esc(t("restartNote")) + "</p>" +
+          "</div>" +
+        "</header>" +
+        '<main class="g-stage"><div class="g-card" id="g-card"></div></main>';
+
+      els.card = document.getElementById("g-card");
+      els.panel = document.getElementById("g-panel");
+      els.gear = document.getElementById("g-gear");
+
+      els.gear.addEventListener("click", function (e) { e.stopPropagation(); togglePanel(els.panel.hidden); });
+      els.panel.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var btn = e.target.closest("[data-lang],[data-level],[data-mode],[data-pieces]");
+        if (!btn) return;
+        if (btn.hasAttribute("data-lang")) {
+          // Language only changes the words — keep the game and the score.
+          S.set("lang", btn.getAttribute("data-lang"));
+          rebuildKeepingGame();
+          return;
+        }
+        if (btn.hasAttribute("data-level")) S.setLevel(GAME_ID, btn.getAttribute("data-level"));
+        if (btn.hasAttribute("data-mode")) setPref("mode", btn.getAttribute("data-mode"));
+        if (btn.hasAttribute("data-pieces")) setPref("pieces", btn.getAttribute("data-pieces"));
+        score = { x: 0, o: 0, draw: 0 };
+        firstPlayer = 0;
+        build();
+        togglePanel(true);
+      });
+
+      newRound();
+    }
+
+    function rebuildKeepingGame() {
+      var saved = state;
+      build();
+      stopRobot();
+      state = saved;
+      render();
+      if (!state.over && isRobot(state.turn)) scheduleRobot();
+      togglePanel(true);
+    }
+
+    function togglePanel(open) {
+      if (!els.panel) return;
+      els.panel.hidden = !open;
+      els.gear.setAttribute("aria-expanded", String(open));
+    }
+    document.addEventListener("click", function () { togglePanel(false); });
+
+    /* ----- One round ----- */
+
+    function newRound() {
+      stopRobot();
+      state = {
+        board: [null, null, null, null, null, null, null, null, null],
+        turn: firstPlayer,
+        starter: firstPlayer,
+        over: false,
+        win: null,
+        message: "",
+        msgClass: ""
+      };
+      render();
+      if (isRobot(state.turn)) scheduleRobot();
+    }
+
+    function render() {
+      var cells = "";
+      for (var i = 0; i < 9; i++) {
+        cells += '<button type="button" class="tt-cell" data-i="' + i + '" aria-label="' +
+          esc(t("cell").replace("{n}", i + 1)) + '"></button>';
+      }
+
+      els.card.innerHTML =
+        '<div class="g-prompt"><h1 class="g-question">' + esc(t("title")) + "</h1></div>" +
+        '<p class="tt-rules">' + esc(t("rules")) + "</p>" +
+        '<div class="tt-score">' +
+          side("x", 0) +
+          '<div class="tt-side tt-side--draw"><span class="tt-side__name"><span class="tt-mini" aria-hidden="true">🤝</span>' +
+            esc(t("draws")) + '</span><span class="tt-side__num" id="tt-n-draw">' + score.draw + "</span></div>" +
+          side("o", 1) +
+        "</div>" +
+        '<p class="tt-turn" id="tt-turn" aria-live="polite"></p>' +
+        '<div class="tt-board' + (pieces === "pets" ? " tt-board--pics" : "") + '" id="tt-board" role="grid">' + cells + "</div>" +
+        '<p class="g-feedback" id="tt-feedback" aria-live="polite">&nbsp;</p>' +
+        '<div class="tt-tools">' +
+          '<button type="button" class="tt-tool tt-tool--primary" id="tt-next" hidden>▶️ ' + esc(t("nextRound")) + "</button>" +
+          '<button type="button" class="tt-tool" id="tt-restart">🔄 ' + esc(t("restart")) + "</button>" +
+          '<button type="button" class="tt-tool" id="tt-reset">🧮 ' + esc(t("resetScore")) + "</button>" +
+        "</div>";
+
+      els.board = document.getElementById("tt-board");
+      els.cells = Array.prototype.slice.call(els.board.children);
+      els.turn = document.getElementById("tt-turn");
+      els.feedback = document.getElementById("tt-feedback");
+      els.next = document.getElementById("tt-next");
+
+      els.board.addEventListener("click", function (e) {
+        var cell = e.target.closest(".tt-cell");
+        if (!cell || cell.disabled) return;
+        humanMove(Number(cell.getAttribute("data-i")));
+      });
+      els.next.addEventListener("click", nextRound);
+      document.getElementById("tt-restart").addEventListener("click", newRound);
+      document.getElementById("tt-reset").addEventListener("click", function () {
+        score = { x: 0, o: 0, draw: 0 };
+        firstPlayer = 0;
+        newRound();
+      });
+
+      paint();
+    }
+
+    function side(key, p) {
+      return '<div class="tt-side tt-side--' + key + '" id="tt-side-' + p + '">' +
+        '<span class="tt-side__name"><span class="tt-mini is-' + key + '" aria-hidden="true">' + marks[p] + "</span>" +
+        (isRobot(p) ? "🤖 " : "") + esc(name(p)) + "</span>" +
+        '<span class="tt-side__num" id="tt-n-' + key + '">' + score[key] + "</span></div>";
+    }
+
+    function paint() {
+      var b = state.board;
+      var robotThinking = !state.over && isRobot(state.turn);
+      els.cells.forEach(function (el, i) {
+        var v = b[i];
+        if (v === null) {
+          el.innerHTML = "";
+          el.className = "tt-cell";
+        } else if (!el.firstChild) {
+          el.innerHTML = '<span class="tt-mark">' + marks[v] + "</span>";
+          el.className = "tt-cell " + (v === 0 ? "is-x" : "is-o");
+        }
+        el.classList.toggle("is-win", !!(state.win && state.win.line.indexOf(i) !== -1));
+        el.disabled = state.over || v !== null || robotThinking;
+        el.setAttribute("data-ghost", marks[state.turn]);
+        el.style.setProperty("--ghost", state.turn === 0 ? "var(--x)" : "var(--o)");
+        el.setAttribute("aria-label", t("cell").replace("{n}", i + 1) + (v !== null ? ": " + name(v) : ""));
+      });
+      els.board.classList.toggle("is-over", !!state.win);
+
+      document.getElementById("tt-side-0").classList.toggle("is-turn", !state.over && state.turn === 0);
+      document.getElementById("tt-side-1").classList.toggle("is-turn", !state.over && state.turn === 1);
+      document.getElementById("tt-n-x").textContent = score.x;
+      document.getElementById("tt-n-o").textContent = score.o;
+      document.getElementById("tt-n-draw").textContent = score.draw;
+
+      // Turn line
+      var mark = '<span class="tt-mini is-' + (state.turn === 0 ? "x" : "o") + '">' + marks[state.turn] + "</span> ";
+      if (state.over) {
+        els.turn.innerHTML = "&nbsp;";
+      } else if (robotThinking) {
+        els.turn.innerHTML = mark + "🤖 " + esc(t("robotTurn")) + '<span class="tt-dots"><span>.</span><span>.</span><span>.</span></span>';
+      } else if (mode === "robot") {
+        els.turn.innerHTML = mark + esc(t("yourTurn"));
+      } else {
+        els.turn.innerHTML = mark + esc(t("playerTurn").replace("{p}", name(state.turn)));
+      }
+
+      // Feedback line
+      var msg = state.message;
+      if (!msg && empties(b).length === 9 && !state.over) {
+        msg = mode === "robot"
+          ? (state.starter === 0 ? t("startsYou") : t("startsRobot"))
+          : t("starts").replace("{p}", name(state.starter));
+      }
+      els.feedback.className = "g-feedback" + (state.msgClass ? " " + state.msgClass : "");
+      els.feedback.textContent = msg || " ";
+
+      els.next.hidden = !state.over;
+    }
+
+    function humanMove(i) {
+      if (state.over || state.board[i] !== null || isRobot(state.turn)) return;
+      place(i);
+    }
+
+    function place(i) {
+      state.board[i] = state.turn;
+      state.message = "";
+      state.msgClass = "";
+      var r = result(state.board);
+      if (r) { endRound(r); return; }
+      state.turn = 1 - state.turn;
+      paint();
+      if (isRobot(state.turn)) scheduleRobot();
+    }
+
+    function scheduleRobot() {
+      stopRobot();
+      paint();
+      robotTimer = setTimeout(function () {
+        robotTimer = null;
+        if (state.over || !isRobot(state.turn)) return;
+        place(robotMove(state.board, 1, level));
+      }, 550 + Math.random() * 450);
+    }
+    function stopRobot() { if (robotTimer) clearTimeout(robotTimer); robotTimer = null; }
+
+    function endRound(r) {
+      state.over = true;
+      if (r === "draw") {
+        score.draw++;
+        state.message = mode === "robot" && level === "hard" ? t("drawHard") : t("draw");
+        state.msgClass = "is-timeup";
+        paint();
+        els.board.classList.add("is-draw");
+      } else {
+        state.win = r;
+        score[r.who === 0 ? "x" : "o"]++;
+        if (mode === "robot") {
+          if (r.who === 0) {
+            state.message = pick(t("youWin"));
+            state.msgClass = "is-right";
+          } else {
+            state.message = t("robotWin") + (level !== "hard" ? " " + pick(t("tips")) : "");
+            state.msgClass = "is-wrong";
+          }
+        } else {
+          state.message = t("playerWin").replace("{p}", name(r.who));
+          state.msgClass = "is-right";
+        }
+        paint();
+      }
+      els.next.focus({ preventScroll: true });
+    }
+
+    function nextRound() {
+      firstPlayer = 1 - firstPlayer;   // take turns starting
+      newRound();
+    }
+
+    /* ----- Keyboard: 1–9 (like a phone keypad, top-left = 1), Enter = next round ----- */
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { togglePanel(false); return; }
+      if (!state || !els.panel.hidden) return;
+      if (/^[1-9]$/.test(e.key)) humanMove(Number(e.key) - 1);
+      else if ((e.key === "Enter" || e.key === " ") && state.over && document.activeElement === document.body) {
+        e.preventDefault();
+        nextRound();
+      }
+    });
+
+    build();
+  })();
+  </script>
+</body>
+</html>
