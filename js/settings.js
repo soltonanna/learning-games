@@ -74,6 +74,13 @@
   }
   function setLevel(gameId, value) { if (isLevel(value)) write("level-" + gameId, value); }
 
+  /** Per-game thinking time (games that set their own default timer). */
+  function getGameTimer(gameId, fallback) {
+    var v = read("timer-" + gameId);
+    return v != null && VALID.timer(v) ? Number(v) : fallback;
+  }
+  function setGameTimer(gameId, value) { if (VALID.timer(value)) write("timer-" + gameId, Number(value)); }
+
   // ?lang=xx in the URL wins and is remembered.
   try {
     var urlLang = new URLSearchParams(window.location.search).get("lang");
@@ -127,6 +134,8 @@
     LEVELS: LEVELS,
     getLevel: getLevel,
     setLevel: setLevel,
+    getGameTimer: getGameTimer,
+    setGameTimer: setGameTimer,
     AGE_GROUPS: AGE_GROUPS,
     DEFAULT_AGES: DEFAULT_AGES,
     get: get,

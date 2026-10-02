@@ -11,6 +11,8 @@
  *     id: "count-fruits",              // must match an id in js/games-data.js
  *     rounds: 10,                      // optional, default 10
  *     levels: true,                    // optional — adds Easy / Medium / Hard
+ *     timer: 20,                       // optional — this game starts with its own thinking time
+ *                                      //   (10/20/30, remembered per game) instead of the shared one
  *     makeQuestion: function (lang, level) {  // lang = "en" | "hy" | "ru"; level = "easy" | "medium" | "hard"
  *       return {
  *         key:     "unique-id",         // optional — avoids repeating questions
@@ -197,7 +199,7 @@
     function build() {
       stopAll();
       lang = S.get("lang");
-      timerSec = S.get("timer");
+      timerSec = opts.timer ? S.getGameTimer(opts.id, opts.timer) : S.get("timer");
       level = opts.levels ? S.getLevel(opts.id) : null;
       var levelInfo = level && S.LEVELS.filter(function (l) { return l.id === level; })[0];
 
@@ -258,7 +260,10 @@
         var btn = e.target.closest("[data-lang],[data-timer],[data-level]");
         if (!btn) return;
         if (btn.hasAttribute("data-lang")) S.set("lang", btn.getAttribute("data-lang"));
-        if (btn.hasAttribute("data-timer")) S.set("timer", btn.getAttribute("data-timer"));
+        if (btn.hasAttribute("data-timer")) {
+          if (opts.timer) S.setGameTimer(opts.id, btn.getAttribute("data-timer"));
+          else S.set("timer", btn.getAttribute("data-timer"));
+        }
         if (btn.hasAttribute("data-level")) S.setLevel(opts.id, btn.getAttribute("data-level"));
         build();
       });

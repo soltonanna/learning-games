@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Car Logos · Play &amp; Learn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700;800&family=Noto+Sans+Armenian:wght@500;600;700;800&display=swap">
+  <link rel="stylesheet" href="../shared/game.css">
+  <style>
+    .v-logo {
+      display: flex; align-items: center; justify-content: center;
+      width: min(320px, 70vw); height: min(200px, 44vw);
+      padding: 18px; border-radius: 22px; background: #fff;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, .08);
+    }
+    .v-logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+
+  <script src="../../js/settings.js"></script>
+  <script src="../../js/games-data.js"></script>
+  <script src="../shared/engine.js"></script>
+  <script>
+    /*
+     * CAR LOGOS — look at the logo and pick the brand from 3 answers.
+     * Logos live in ./logos/<file>.png (emblems only, the brand name is cut off
+     * so it doesn't give the answer away). To add a brand: drop a PNG in logos/
+     * and add a row below. Brand names stay in Latin letters — as on real cars.
+     */
+    var COUNTRIES = {
+      jp: { flag: "🇯🇵", name: { en: "Japan",          hy: "Ճապոնիա",          ru: "Япония" } },
+      de: { flag: "🇩🇪", name: { en: "Germany",        hy: "Գերմանիա",         ru: "Германия" } },
+      it: { flag: "🇮🇹", name: { en: "Italy",          hy: "Իտալիա",           ru: "Италия" } },
+      us: { flag: "🇺🇸", name: { en: "the USA",        hy: "ԱՄՆ",              ru: "США" } },
+      kr: { flag: "🇰🇷", name: { en: "South Korea",    hy: "Հարավային Կորեա",  ru: "Южная Корея" } },
+      ru: { flag: "🇷🇺", name: { en: "Russia",         hy: "Ռուսաստան",        ru: "Россия" } },
+      fr: { flag: "🇫🇷", name: { en: "France",         hy: "Ֆրանսիա",          ru: "Франция" } },
+      cz: { flag: "🇨🇿", name: { en: "Czechia",        hy: "Չեխիա",            ru: "Чехия" } },
+      gb: { flag: "🇬🇧", name: { en: "Great Britain",  hy: "Մեծ Բրիտանիա",     ru: "Великобритания" } },
+      es: { flag: "🇪🇸", name: { en: "Spain",          hy: "Իսպանիա",          ru: "Испания" } },
+      cn: { flag: "🇨🇳", name: { en: "China",          hy: "Չինաստան",         ru: "Китай" } },
+      se: { flag: "🇸🇪", name: { en: "Sweden",         hy: "Շվեդիա",           ru: "Швеция" } }
+    };
+
+    // [file, name, country]
+    var BRANDS = {
+      easy: [
+        ["toyota", "Toyota", "jp"], ["bmw", "BMW", "de"], ["mercedes-benz", "Mercedes-Benz", "de"],
+        ["volkswagen", "Volkswagen", "de"], ["audi", "Audi", "de"], ["honda", "Honda", "jp"],
+        ["ferrari", "Ferrari", "it"], ["lamborghini", "Lamborghini", "it"], ["porsche", "Porsche", "de"],
+        ["tesla", "Tesla", "us"], ["hyundai", "Hyundai", "kr"], ["lada", "Lada", "ru"],
+        ["mazda", "Mazda", "jp"], ["renault", "Renault", "fr"], ["peugeot", "Peugeot", "fr"]
+      ],
+      medium: [
+        ["chevrolet", "Chevrolet", "us"], ["subaru", "Subaru", "jp"], ["mitsubishi", "Mitsubishi", "jp"],
+        ["lexus", "Lexus", "jp"], ["skoda", "Škoda", "cz"], ["opel", "Opel", "de"],
+        ["citroen", "Citroën", "fr"], ["infiniti", "Infiniti", "jp"], ["jaguar", "Jaguar", "gb"],
+        ["maserati", "Maserati", "it"], ["suzuki", "Suzuki", "jp"], ["seat", "SEAT", "es"],
+        ["cadillac", "Cadillac", "us"], ["bentley", "Bentley", "gb"], ["alfa-romeo", "Alfa Romeo", "it"]
+      ],
+      hard: [
+        ["acura", "Acura", "jp"], ["chery", "Chery", "cn"], ["cupra", "Cupra", "es"],
+        ["ds", "DS", "fr"], ["gaz", "GAZ", "ru"], ["geely", "Geely", "cn"],
+        ["great-wall", "Great Wall", "cn"], ["koenigsegg", "Koenigsegg", "se"], ["polestar", "Polestar", "se"],
+        ["smart", "Smart", "de"], ["ssangyong", "SsangYong", "kr"], ["uaz", "UAZ", "ru"],
+        ["alpine", "Alpine", "fr"], ["aston-martin", "Aston Martin", "gb"], ["vauxhall", "Vauxhall", "gb"]
+      ]
+    };
+
+    function toBrand(row) { return { file: row[0], name: row[1], country: row[2] }; }
+    var LEVEL_ORDER = ["easy", "medium", "hard"];
+    function upTo(level) {
+      var list = [];
+      LEVEL_ORDER.slice(0, LEVEL_ORDER.indexOf(level) + 1).forEach(function (l) {
+        list = list.concat(BRANDS[l].map(toBrand));
+      });
+      return list;
+    }
+
+    GameKit.start({
+      id: "car-brands",
+      rounds: 10,
+      levels: true,
+      timer: 20,          // thinking time is ON for this game by default (change it in ⚙️)
+      makeQuestion: function (lang, level) {
+        var brand = toBrand(GameKit.pick(BRANDS[level]));
+        var pool = upTo(level).filter(function (b) { return b.name !== brand.name; });
+
+        // Hard: wrong answers come from the same country when possible — trickier!
+        var wrong = [];
+        if (level === "hard") {
+          wrong = GameKit.sample(pool.filter(function (b) { return b.country === brand.country; }), 2);
+        }
+        var rest = pool.filter(function (b) { return wrong.indexOf(b) === -1; });
+        wrong = wrong.concat(GameKit.sample(rest, 2 - wrong.length));
+
+        var c = COUNTRIES[brand.country];
+        return {
+          key: brand.file,
+          prompt: GameKit.tr({
+            en: "Which car brand has this logo?",
+            hy: "Մեքենայի ո՞ր մակնիշի լոգոն է սա",
+            ru: "Какой марке машины принадлежит этот логотип?"
+          }),
+          visual: '<div class="v-logo"><img src="logos/' + brand.file + '.png" alt="" draggable="false"></div>',
+          choices: GameKit.shuffle([brand.name].concat(wrong.map(function (b) { return b.name; }))),
+          answer: brand.name,
+          explain: GameKit.tr({
+            en: brand.name + " comes from " + c.name.en + " " + c.flag,
+            hy: brand.name + "․ երկիրը՝ " + c.name.hy + " " + c.flag,
+            ru: brand.name + ". Страна: " + c.name.ru + " " + c.flag
+          })
+        };
+      }
+    });
+  </script>
+</body>
+</html>

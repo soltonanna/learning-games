@@ -27,6 +27,8 @@ games/<game-id>/        One folder per game
   `ages` range overlaps the group. A game without `ages` counts as 7+.
 - **Thinking time:** Off / 10 / 20 / 30 seconds per question. When time runs out the right
   answer is shown and the game moves on (no star for that question).
+  A game can start with its own timer: `GameKit.start({ timer: 20, ... })` — it is then ON by
+  default for that game and changing it in ⚙️ is remembered for that game only (e.g. Car Logos).
 
 ## Levels (Easy / Medium / Hard)
 

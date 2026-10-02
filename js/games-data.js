@@ -34,6 +34,8 @@ window.LEARNING_GAMES = {
       name: { en: "Languages", hy: "Լեզուներ", ru: "Языки" } },
     { id: "science",   icon: "🔬", color: "#169BDB", soft: "#E2F3FB",
       name: { en: "Science", hy: "Գիտություն", ru: "Наука" } },
+    { id: "world",     icon: "🚗", color: "#E39A0B", soft: "#FDF3DC",
+      name: { en: "World Around Us", hy: "Շրջակա աշխարհ", ru: "Окружающий мир" } },
     { id: "art",       icon: "🎨", color: "#EC4C8A", soft: "#FDE8F0",
       name: { en: "Art & Music", hy: "Արվեստ և երաժշտություն", ru: "Искусство и музыка" } }
   ],
@@ -154,6 +156,19 @@ window.LEARNING_GAMES = {
         en: "Guess what happens when you drop things into water.",
         hy: "Գուշակի՛ր, թե ինչ կլինի, եթե իրը գցես ջուրը։",
         ru: "Угадай, что будет, если бросить предмет в воду."
+      }
+    },
+    {
+      id: "car-brands",
+      theme: "world",
+      icon: "🚗",
+      ages: "7+",
+      url: "games/car-brands/index.html",
+      title: { en: "Car Logos", hy: "Մեքենաների լոգոներ", ru: "Логотипы машин" },
+      description: {
+        en: "Look at the logo and guess the car brand — 3 answers, beat the timer! 45 brands, 3 levels.",
+        hy: "Նայի՛ր լոգոյին և գուշակի՛ր մեքենայի մակնիշը․ 3 պատասխան, հասցրու՛ ժամանակին։ 45 մակնիշ, 3 մակարդակ։",
+        ru: "Посмотри на логотип и угадай марку машины — 3 ответа, успей до конца таймера! 45 марок, 3 уровня."
       }
     },
     {
