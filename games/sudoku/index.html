@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sudoku · Play &amp; Learn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700;800&family=Noto+Sans+Armenian:wght@500;600;700;800&display=swap">
+  <link rel="stylesheet" href="../shared/game.css">
+  <style>
+    .sd-info {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .sd-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 14px;
+      border-radius: 999px;
+      background: var(--soft);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 16px;
+      font-variant-numeric: tabular-nums;
+    }
+    .sd-pill.is-bad { background: #FFF0F2; color: var(--wrong); }
+
+    /* ---------- Board ---------- */
+    .sd-board {
+      --size: min(480px, calc(100vw - 60px));
+      display: grid;
+      grid-template-columns: repeat(var(--n), 1fr);
+      width: var(--size);
+      aspect-ratio: 1;
+      margin: 18px auto 0;
+      border: 4px solid var(--ink);
+      border-radius: 16px;
+      overflow: hidden;
+      background: #fff;
+      touch-action: manipulation;
+    }
+    .sd-cell {
+      display: grid;
+      place-items: center;
+      min-width: 0;
+      padding: 0;
+      border: 0;
+      border-right: 1px solid #D9D2E3;
+      border-bottom: 1px solid #D9D2E3;
+      background: #fff;
+      color: var(--c);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: calc(var(--size) / var(--n) * .56);
+      line-height: 1;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .sd-board--pics .sd-cell { font-size: calc(var(--size) / var(--n) * .5); }
+    .sd-cell.b-r { border-right: 3px solid var(--ink); }
+    .sd-cell.b-b { border-bottom: 3px solid var(--ink); }
+    .sd-cell.is-last-col { border-right: 0; }
+    .sd-cell.is-last-row { border-bottom: 0; }
+    .sd-cell.is-given { color: var(--ink); font-weight: 800; cursor: default; }
+    .sd-cell.is-peer { background: var(--soft); }
+    .sd-cell.is-same { background: color-mix(in srgb, var(--c) 22%, #fff); }
+    .sd-cell.is-sel { background: color-mix(in srgb, var(--c) 38%, #fff); box-shadow: inset 0 0 0 3px var(--c); }
+    .sd-cell.is-wrong { color: var(--wrong); background: #FFE3E8; animation: g-shake .4s ease; }
+    .sd-cell.is-sel.is-wrong { box-shadow: inset 0 0 0 3px var(--wrong); }
+    .sd-cell.is-hint { animation: g-bounce .5s ease; }
+    .sd-cell:focus-visible { outline: none; box-shadow: inset 0 0 0 3px var(--c); }
+    .sd-board.is-done .sd-cell { animation: sd-wave .6s ease both; }
+    @keyframes sd-wave { 40% { transform: scale(1.15); background: #E8F8F0; } }
+
+    /* ---------- Number pad ---------- */
+    .sd-pad {
+      display: grid;
+      grid-template-columns: repeat(var(--cols), 1fr);
+      gap: 8px;
+      width: min(480px, 100%);
+      margin: 18px auto 0;
+    }
+    .sd-key {
+      position: relative;
+      min-height: 58px;
+      padding: 4px;
+      border-radius: 16px;
+      border: 3px solid var(--line);
+      border-bottom-width: 6px;
+      background: #fff;
+      color: var(--ink);
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 28px;
+      line-height: 1;
+      cursor: pointer;
+      transition: transform .12s ease, border-color .12s ease;
+    }
+    .sd-key:hover:not(:disabled) { border-color: var(--c); transform: translateY(-2px); }
+    .sd-key:active:not(:disabled) { transform: translateY(2px); border-bottom-width: 3px; }
+    .sd-key:focus-visible { outline: 4px solid var(--c); outline-offset: 2px; }
+    .sd-key:disabled { opacity: .35; cursor: default; }
+    .sd-key__left {
+      position: absolute;
+      top: 3px;
+      right: 6px;
+      color: var(--ink-soft);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .sd-tools {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .sd-tool {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 48px;
+      padding: 6px 18px;
+      border-radius: 999px;
+      border: 3px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 17px;
+      cursor: pointer;
+    }
+    .sd-tool:hover:not(:disabled) { border-color: var(--c); }
+    .sd-tool:disabled { opacity: .45; cursor: default; }
+    .sd-tool b { color: var(--c); }
+
+    .sd-rules {
+      margin: 6px 0 0;
+      color: var(--ink-soft);
+      font-weight: 600;
+      font-size: 16px;
+      text-align: center;
+    }
+
+    @media (max-width: 600px) {
+      .sd-board { --size: calc(100vw - 52px); border-width: 3px; }
+      .sd-key { min-height: 52px; font-size: 24px; border-radius: 14px; }
+      .sd-pad { gap: 6px; }
+      .sd-tool { font-size: 15px; padding: 6px 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+
+  <script src="../../js/settings.js"></script>
+  <script src="../../js/games-data.js"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    var S = window.PlaySettings;
+    var GAME_ID = "sudoku";
+
+    /* ---------- Levels: grid size, box shape, how many cells to empty, hints ---------- */
+    var LEVEL_SETUP = {
+      easy:   { n: 4, br: 2, bc: 2, holes: 8,  hints: 2 },
+      medium: { n: 6, br: 2, bc: 3, holes: 18, hints: 3 },
+      hard:   { n: 9, br: 3, bc: 3, holes: 46, hints: 5 }
+    };
+
+    /** Picture mode — one fruit per number. */
+    var PICS = ["🍎", "🍌", "🍇", "🍓", "🍊", "🍉", "🍒", "🥝", "🍍"];
+
+    var UI = {
+      allGames: { en: "All games", hy: "Բոլոր խաղերը", ru: "Все игры" },
+      settings: { en: "Settings", hy: "Կարգավորումներ", ru: "Настройки" },
+      language: { en: "Language", hy: "Լեզու", ru: "Язык" },
+      level:    { en: "Level", hy: "Մակարդակ", ru: "Уровень" },
+      symbols:  { en: "Play with", hy: "Խաղալ", ru: "Играть с" },
+      numbers:  { en: "Numbers", hy: "Թվերով", ru: "Цифрами" },
+      pictures: { en: "Fruits", hy: "Մրգերով", ru: "Фруктами" },
+      restartNote: {
+        en: "Changing a setting starts a new puzzle.",
+        hy: "Կարգավորումը փոխելիս նոր խաղ կսկսվի։",
+        ru: "После изменения начнётся новая головоломка."
+      },
+      title: {
+        en: "Fill every empty square!",
+        hy: "Լրացրո՛ւ բոլոր դատարկ վանդակները։",
+        ru: "Заполни все пустые клетки!"
+      },
+      rulesNum: {
+        en: "Each row, column and thick box has every number from 1 to {n} — only once.",
+        hy: "Ամեն տողում, սյունակում և հաստ գծով քառակուսում 1-ից {n} թվերից յուրաքանչյուրը կա միայն մեկ անգամ։",
+        ru: "В каждой строке, столбце и квадрате с толстой рамкой каждое число от 1 до {n} — только один раз."
+      },
+      rulesPic: {
+        en: "Each row, column and thick box has every fruit — only once.",
+        hy: "Ամեն տողում, սյունակում և հաստ գծով քառակուսում ամեն միրգ կա միայն մեկ անգամ։",
+        ru: "В каждой строке, столбце и квадрате с толстой рамкой каждый фрукт — только один раз."
+      },
+      mistakes: { en: "Mistakes", hy: "Սխալներ", ru: "Ошибки" },
+      time:     { en: "Time", hy: "Ժամանակ", ru: "Время" },
+      erase:    { en: "Erase", hy: "Ջնջել", ru: "Стереть" },
+      hint:     { en: "Hint", hy: "Հուշում", ru: "Подсказка" },
+      newGame:  { en: "New puzzle", hy: "Նոր խաղ", ru: "Новая игра" },
+      pickCell: {
+        en: "Tap an empty square first.",
+        hy: "Նախ սեղմի՛ր դատարկ վանդակի վրա։",
+        ru: "Сначала нажми на пустую клетку."
+      },
+      wrong: {
+        en: ["Oops! That one is already in this row, column or box.", "Not this one — look again!", "Almost! Try another one."],
+        hy: ["Վա՜յ, սա արդեն կա այս տողում, սյունակում կամ քառակուսում։", "Սա չէ․ նորից նայի՛ր։", "Գրեթե։ Փորձի՛ր մեկ ուրիշը։"],
+        ru: ["Ой! Такое уже есть в этой строке, столбце или квадрате.", "Не то — посмотри ещё раз!", "Почти! Попробуй другое."]
+      },
+      wrongHere: {
+        en: "Not this one — look again!",
+        hy: "Սա չէ․ նորից նայի՛ր։",
+        ru: "Не то — посмотри ещё раз!"
+      },
+      right: {
+        en: ["Great!", "Yes!", "Super!", "Nice one!"],
+        hy: ["Ապրե՛ս։", "Ճիշտ է։", "Սուպեր։", "Կեցցե՛ս։"],
+        ru: ["Отлично!", "Верно!", "Супер!", "Здорово!"]
+      },
+      hintUsed: { en: "Here's a little help!", hy: "Ահա մի փոքր օգնություն։", ru: "Вот небольшая подсказка!" },
+      noHints:  { en: "No hints left — you can do it!", hy: "Հուշումներ այլևս չկան․ դու կկարողանաս։", ru: "Подсказки закончились — у тебя получится!" },
+      end3: { en: "Perfect puzzle!", hy: "Կատարյալ է։", ru: "Идеально!" },
+      end2: { en: "Puzzle solved!", hy: "Լուծեցիր։", ru: "Головоломка решена!" },
+      end1: { en: "You did it!", hy: "Դու կարողացար։", ru: "У тебя получилось!" },
+      endScore: {
+        en: "Solved in <b>{t}</b> · mistakes: <b>{m}</b> · hints: <b>{h}</b>",
+        hy: "Լուծեցիր <b>{t}</b>-ում · սխալներ՝ <b>{m}</b> · հուշումներ՝ <b>{h}</b>",
+        ru: "Решено за <b>{t}</b> · ошибки: <b>{m}</b> · подсказки: <b>{h}</b>"
+      },
+      stars: { en: "{n} out of 3 stars", hy: "{n} աստղ 3-ից", ru: "{n} из 3 звёзд" },
+      nextLevel: { en: "Try {l} level", hy: "Փորձի՛ր «{l}» մակարդակը", ru: "Попробуй уровень «{l}»" },
+      again: { en: "Play again", hy: "Նորից խաղալ", ru: "Играть снова" },
+      more:  { en: "More games", hy: "Այլ խաղեր", ru: "Другие игры" }
+    };
+    function t(key) { return S.tr(UI[key]); }
+    function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
+    function esc(s) {
+      return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+    function shuffle(list) {
+      var a = list.slice();
+      for (var i = a.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+      }
+      return a;
+    }
+
+    /* ---------- Remembered "numbers / fruits" choice ---------- */
+    function getSymbols() {
+      try { return window.localStorage.getItem("playlearn-sudoku-symbols") === "pics" ? "pics" : "nums"; }
+      catch (e) { return window.__sdSymbols || "nums"; }
+    }
+    function setSymbols(v) {
+      window.__sdSymbols = v;
+      try { window.localStorage.setItem("playlearn-sudoku-symbols", v); } catch (e) { /* private mode */ }
+    }
+
+    /* ======================================================================
+       Puzzle generator — builds a full valid grid, then empties cells one by
+       one, keeping only removals that leave exactly ONE solution.
+       ====================================================================== */
+
+    function makeGenerator(n, br, bc) {
+      var cells = n * n;
+      var rowOf = [], colOf = [], boxOf = [];
+      for (var i = 0; i < cells; i++) {
+        var r = Math.floor(i / n), c = i % n;
+        rowOf.push(r); colOf.push(c);
+        boxOf.push(Math.floor(r / br) * (n / bc) + Math.floor(c / bc));
+      }
+      var FULL = (1 << (n + 1)) - 2; // bits 1..n
+
+      function popcount(x) { var k = 0; while (x) { x &= x - 1; k++; } return k; }
+
+      /** Solves `grid` in place-ish; returns number of solutions found (stops at `limit`). */
+      function solve(grid, limit, randomize) {
+        var g = grid.slice();
+        var rows = new Array(n).fill(0), cols = new Array(n).fill(0), boxes = new Array(n).fill(0);
+        for (var i = 0; i < cells; i++) {
+          var v = g[i];
+          if (v) { var b = 1 << v; rows[rowOf[i]] |= b; cols[colOf[i]] |= b; boxes[boxOf[i]] |= b; }
+        }
+        var count = 0, result = null;
+
+        function rec() {
+          // Pick the empty cell with the fewest options.
+          var best = -1, bestMask = 0, bestN = 99;
+          for (var i = 0; i < cells; i++) {
+            if (g[i]) continue;
+            var m = FULL & ~(rows[rowOf[i]] | cols[colOf[i]] | boxes[boxOf[i]]);
+            var k = popcount(m);
+            if (k < bestN) { best = i; bestMask = m; bestN = k; if (k <= 1) break; }
+          }
+          if (best === -1) { count++; if (!result) result = g.slice(); return count >= limit; }
+          if (!bestMask) return false;
+          var vals = [];
+          for (var v = 1; v <= n; v++) if (bestMask & (1 << v)) vals.push(v);
+          if (randomize) vals = shuffle(vals);
+          var r = rowOf[best], c = colOf[best], bx = boxOf[best];
+          for (var j = 0; j < vals.length; j++) {
+            var bit = 1 << vals[j];
+            g[best] = vals[j]; rows[r] |= bit; cols[c] |= bit; boxes[bx] |= bit;
+            if (rec()) return true;
+            g[best] = 0; rows[r] &= ~bit; cols[c] &= ~bit; boxes[bx] &= ~bit;
+          }
+          return false;
+        }
+        rec();
+        return { count: count, grid: result };
+      }
+
+      return function generate(holes) {
+        var solution = solve(new Array(cells).fill(0), 1, true).grid;
+        var puzzle = solution.slice();
+        var order = shuffle(Array.from({ length: cells }, function (_, i) { return i; }));
+        var removed = 0;
+        for (var k = 0; k < order.length && removed < holes; k++) {
+          var i = order[k], keep = puzzle[i];
+          puzzle[i] = 0;
+          if (solve(puzzle, 2, false).count === 1) removed++;
+          else puzzle[i] = keep;
+        }
+        return { puzzle: puzzle, solution: solution, rowOf: rowOf, colOf: colOf, boxOf: boxOf };
+      };
+    }
+
+    /* ======================================================================
+       Game
+       ====================================================================== */
+
+    var catalog = window.LEARNING_GAMES || { themes: [], games: [] };
+    var game = catalog.games.filter(function (g) { return g.id === GAME_ID; })[0] ||
+      { title: { en: "Sudoku" }, icon: "🧩", theme: "logic" };
+    var theme = catalog.themes.filter(function (th) { return th.id === game.theme; })[0] ||
+      { color: "#12A594", soft: "#E1F6F3" };
+    var home = "../../index.html" + (game.theme ? "#" + game.theme : "");
+    var root = document.getElementById("game");
+
+    document.documentElement.style.setProperty("--c", theme.color);
+    document.documentElement.style.setProperty("--soft", theme.soft);
+
+    var lang, level, symbols, setup, P, state, els = {};
+    var clock = null;
+
+    function sym(v) { return v ? (symbols === "pics" ? PICS[v - 1] : String(v)) : ""; }
+
+    function seg(attr, items, current) {
+      return '<div class="g-seg" role="group">' + items.map(function (it) {
+        var on = String(it.value) === String(current);
+        return '<button type="button" class="g-seg__btn' + (on ? " is-active" : "") + '" data-' + attr + '="' + it.value + '"' +
+          ' aria-pressed="' + on + '"' + (it.lang ? ' lang="' + it.lang + '"' : "") + ">" + it.label + "</button>";
+      }).join("") + "</div>";
+    }
+
+    function fmtTime(sec) {
+      var m = Math.floor(sec / 60), s = sec % 60;
+      return m + ":" + (s < 10 ? "0" : "") + s;
+    }
+
+    /* ----- Page shell ----- */
+
+    function build() {
+      stopClock();
+      lang = S.get("lang");
+      level = S.getLevel(GAME_ID);
+      symbols = getSymbols();
+      setup = LEVEL_SETUP[level];
+      var levelInfo = S.LEVELS.filter(function (l) { return l.id === level; })[0];
+      var title = S.tr(game.title);
+
+      document.documentElement.lang = lang;
+      document.title = title + " · Play & Learn";
+
+      root.innerHTML =
+        '<header class="g-top">' +
+          '<a class="g-back" href="' + home + '">' +
+            '<span aria-hidden="true">←</span> <span class="g-back__label">' + esc(t("allGames")) + "</span></a>" +
+          '<div class="g-title"><span aria-hidden="true">' + game.icon + "</span> " + esc(title) + "</div>" +
+          '<div class="g-right">' +
+            '<button class="g-gear" type="button" id="g-gear" aria-expanded="false" aria-controls="g-panel" title="' + esc(t("settings")) + '">' +
+              '<span aria-hidden="true">⚙️</span><span class="g-gear__lang">' + esc(S.langInfo(lang).label) + "</span>" +
+              '<span class="g-gear__level">' + levelInfo.icon + '<span class="g-gear__lvname"> ' + setup.n + "×" + setup.n + "</span></span>" +
+            "</button>" +
+          "</div>" +
+          '<div class="g-panel" id="g-panel" hidden>' +
+            '<div class="g-panel__row"><span class="g-panel__label">🌐 ' + esc(t("language")) + "</span>" +
+              seg("lang", S.LANGS.map(function (l) { return { value: l.id, label: esc(l.label), lang: l.id }; }), lang) +
+            "</div>" +
+            '<div class="g-panel__row"><span class="g-panel__label">🎯 ' + esc(t("level")) + "</span>" +
+              seg("level", S.LEVELS.map(function (l) {
+                var n = LEVEL_SETUP[l.id].n;
+                return { value: l.id, label: l.icon + "&nbsp;" + n + "×" + n };
+              }), level) +
+            "</div>" +
+            '<div class="g-panel__row"><span class="g-panel__label">✏️ ' + esc(t("symbols")) + "</span>" +
+              seg("symbols", [
+                { value: "nums", label: "123&nbsp;" + esc(t("numbers")) },
+                { value: "pics", label: "🍎&nbsp;" + esc(t("pictures")) }
+              ], symbols) +
+            "</div>" +
+            '<p class="g-panel__note">' + esc(t("restartNote")) + "</p>" +
+          "</div>" +
+        "</header>" +
+        '<main class="g-stage"><div class="g-card" id="g-card"></div></main>';
+
+      els.card = document.getElementById("g-card");
+      els.panel = document.getElementById("g-panel");
+      els.gear = document.getElementById("g-gear");
+
+      els.gear.addEventListener("click", function (e) { e.stopPropagation(); togglePanel(els.panel.hidden); });
+      els.panel.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var btn = e.target.closest("[data-lang],[data-level],[data-symbols]");
+        if (!btn) return;
+        if (btn.hasAttribute("data-lang")) S.set("lang", btn.getAttribute("data-lang"));
+        if (btn.hasAttribute("data-level")) S.setLevel(GAME_ID, btn.getAttribute("data-level"));
+        if (btn.hasAttribute("data-symbols")) setSymbols(btn.getAttribute("data-symbols"));
+        build();
+      });
+
+      newPuzzle();
+    }
+
+    function togglePanel(open) {
+      if (!els.panel) return;
+      els.panel.hidden = !open;
+      els.gear.setAttribute("aria-expanded", String(open));
+    }
+    document.addEventListener("click", function () { togglePanel(false); });
+
+    /* ----- One puzzle ----- */
+
+    function newPuzzle() {
+      stopClock();
+      P = makeGenerator(setup.n, setup.br, setup.bc)(setup.holes);
+      state = {
+        values: P.puzzle.slice(),
+        given: P.puzzle.map(function (v) { return v !== 0; }),
+        wrong: P.puzzle.map(function () { return false; }),
+        sel: -1,
+        mistakes: 0,
+        hintsUsed: 0,
+        seconds: 0,
+        done: false
+      };
+      // Start with the first empty cell selected.
+      state.sel = state.values.indexOf(0);
+      render();
+      clock = setInterval(function () {
+        if (document.hidden || state.done) return;
+        state.seconds++;
+        if (els.time) els.time.textContent = fmtTime(state.seconds);
+      }, 1000);
+    }
+
+    function stopClock() { if (clock) clearInterval(clock); clock = null; }
+
+    function render() {
+      var n = setup.n;
+      var rules = symbols === "pics" ? t("rulesPic") : t("rulesNum").replace("{n}", n);
+
+      var cellsHTML = "";
+      for (var i = 0; i < n * n; i++) {
+        var r = P.rowOf[i], c = P.colOf[i];
+        var cls = "sd-cell";
+        if ((c + 1) % setup.bc === 0 && c < n - 1) cls += " b-r";
+        if ((r + 1) % setup.br === 0 && r < n - 1) cls += " b-b";
+        if (c === n - 1) cls += " is-last-col";
+        if (r === n - 1) cls += " is-last-row";
+        cellsHTML += '<button type="button" class="' + cls + '" data-i="' + i + '"></button>';
+      }
+
+      var padHTML = "";
+      for (var v = 1; v <= n; v++) {
+        padHTML += '<button type="button" class="sd-key" data-v="' + v + '"><span class="sd-key__val">' + sym(v) +
+          '</span><span class="sd-key__left"></span></button>';
+      }
+
+      els.card.innerHTML =
+        '<div class="g-prompt"><h1 class="g-question">' + esc(t("title")) + "</h1></div>" +
+        '<p class="sd-rules">' + esc(rules) + "</p>" +
+        '<div class="sd-info">' +
+          '<span class="sd-pill" title="' + esc(t("time")) + '">⏱️ <span id="sd-time">' + fmtTime(state.seconds) + "</span></span>" +
+          '<span class="sd-pill" id="sd-mist" title="' + esc(t("mistakes")) + '">❌ ' + esc(t("mistakes")) + ": <b>0</b></span>" +
+        "</div>" +
+        '<div class="sd-board' + (symbols === "pics" ? " sd-board--pics" : "") + '" id="sd-board" role="grid" style="--n:' + n + '">' + cellsHTML + "</div>" +
+        '<div class="sd-pad" id="sd-pad" style="--cols:' + (n === 9 ? 9 : n) + '">' + padHTML + "</div>" +
+        '<div class="sd-tools">' +
+          '<button type="button" class="sd-tool" id="sd-erase">🧽 ' + esc(t("erase")) + "</button>" +
+          '<button type="button" class="sd-tool" id="sd-hint">💡 ' + esc(t("hint")) + ' <b id="sd-hints"></b></button>' +
+          '<button type="button" class="sd-tool" id="sd-new">🔄 ' + esc(t("newGame")) + "</button>" +
+        "</div>" +
+        '<p class="g-feedback" id="sd-feedback" aria-live="polite">&nbsp;</p>';
+
+      els.board = document.getElementById("sd-board");
+      els.pad = document.getElementById("sd-pad");
+      els.time = document.getElementById("sd-time");
+      els.mist = document.getElementById("sd-mist");
+      els.feedback = document.getElementById("sd-feedback");
+      els.hintBtn = document.getElementById("sd-hint");
+      els.hints = document.getElementById("sd-hints");
+      els.cells = Array.prototype.slice.call(els.board.children);
+      els.keys = Array.prototype.slice.call(els.pad.children);
+
+      els.board.addEventListener("click", function (e) {
+        var cell = e.target.closest(".sd-cell");
+        if (!cell || state.done) return;
+        state.sel = Number(cell.getAttribute("data-i"));
+        paint();
+      });
+      els.pad.addEventListener("click", function (e) {
+        var key = e.target.closest(".sd-key");
+        if (key && !key.disabled) enter(Number(key.getAttribute("data-v")));
+      });
+      document.getElementById("sd-erase").addEventListener("click", erase);
+      els.hintBtn.addEventListener("click", hint);
+      document.getElementById("sd-new").addEventListener("click", newPuzzle);
+
+      paint();
+    }
+
+    /** Refresh every cell, the pad counters and the info pills. */
+    function paint() {
+      var n = setup.n, sel = state.sel;
+      var selVal = sel > -1 ? state.values[sel] : 0;
+      els.cells.forEach(function (el, i) {
+        var v = state.values[i];
+        el.textContent = sym(v);
+        el.classList.toggle("is-given", state.given[i]);
+        el.classList.toggle("is-wrong", state.wrong[i]);
+        el.classList.toggle("is-sel", i === sel);
+        var peer = sel > -1 && i !== sel &&
+          (P.rowOf[i] === P.rowOf[sel] || P.colOf[i] === P.colOf[sel] || P.boxOf[i] === P.boxOf[sel]);
+        el.classList.toggle("is-peer", peer);
+        el.classList.toggle("is-same", !!selVal && i !== sel && v === selVal && !state.wrong[i]);
+        el.setAttribute("aria-label", (P.rowOf[i] + 1) + "," + (P.colOf[i] + 1) + (v ? ": " + v : ""));
+      });
+
+      // How many of each symbol are still missing (correct placements only).
+      var placed = new Array(n + 1).fill(0);
+      state.values.forEach(function (v, i) { if (v && !state.wrong[i]) placed[v]++; });
+      els.keys.forEach(function (k, idx) {
+        var left = n - placed[idx + 1];
+        k.querySelector(".sd-key__left").textContent = left || "";
+        k.disabled = left === 0 || state.done;
+      });
+
+      els.mist.querySelector("b").textContent = state.mistakes;
+      els.mist.classList.toggle("is-bad", state.mistakes > 0);
+      var hintsLeft = setup.hints - state.hintsUsed;
+      els.hints.textContent = hintsLeft;
+      els.hintBtn.disabled = hintsLeft <= 0 || state.done;
+    }
+
+    function say(text, cls) {
+      els.feedback.className = "g-feedback" + (cls ? " " + cls : "");
+      els.feedback.textContent = text || " ";
+    }
+
+    /** Does value v clash with a correct value in the same row / column / box? */
+    function clashes(i, v) {
+      for (var j = 0; j < state.values.length; j++) {
+        if (j === i || state.values[j] !== v || state.wrong[j]) continue;
+        if (P.rowOf[j] === P.rowOf[i] || P.colOf[j] === P.colOf[i] || P.boxOf[j] === P.boxOf[i]) return true;
+      }
+      return false;
+    }
+
+    function enter(v) {
+      if (state.done) return;
+      var i = state.sel;
+      if (i < 0 || state.given[i]) { say(t("pickCell"), "is-wrong"); return; }
+      if (state.values[i] === v && !state.wrong[i]) return;
+      state.values[i] = v;
+      if (v === P.solution[i]) {
+        state.wrong[i] = false;
+        say(pick(t("right")), "is-right");
+      } else {
+        state.wrong[i] = true;
+        state.mistakes++;
+        say(clashes(i, v) ? t("wrong")[0] : t("wrongHere"), "is-wrong");
+      }
+      paint();
+      checkWin();
+    }
+
+    function erase() {
+      var i = state.sel;
+      if (state.done || i < 0 || state.given[i]) return;
+      state.values[i] = 0;
+      state.wrong[i] = false;
+      say("");
+      paint();
+    }
+
+    function hint() {
+      if (state.done) return;
+      if (state.hintsUsed >= setup.hints) { say(t("noHints"), "is-wrong"); return; }
+      var i = state.sel;
+      if (i < 0 || state.given[i] || (state.values[i] && !state.wrong[i])) {
+        var open = [];
+        state.values.forEach(function (v, j) { if (!v || state.wrong[j]) open.push(j); });
+        if (!open.length) return;
+        i = pick(open);
+      }
+      state.values[i] = P.solution[i];
+      state.wrong[i] = false;
+      state.given[i] = true; // a hint stays fixed
+      state.hintsUsed++;
+      state.sel = i;
+      paint();
+      var cell = els.cells[i];
+      cell.classList.remove("is-hint"); void cell.offsetWidth; cell.classList.add("is-hint");
+      say(t("hintUsed"), "is-right");
+      checkWin();
+    }
+
+    function checkWin() {
+      for (var i = 0; i < state.values.length; i++) if (state.values[i] !== P.solution[i]) return;
+      state.done = true;
+      stopClock();
+      state.sel = -1;
+      paint();
+      els.board.classList.add("is-done");
+      els.cells.forEach(function (el, i) {
+        el.style.animationDelay = ((P.rowOf[i] + P.colOf[i]) * 0.05) + "s";
+      });
+      setTimeout(finish, 900 + setup.n * 80);
+    }
+
+    function finish() {
+      var slips = state.mistakes + state.hintsUsed;
+      var stars = slips === 0 ? 3 : slips <= 3 ? 2 : 1;
+      var idx = S.LEVELS.map(function (l) { return l.id; }).indexOf(level);
+      var next = stars === 3 ? S.LEVELS[idx + 1] : null;
+
+      els.card.innerHTML =
+        '<div class="g-end">' +
+          '<div class="g-stars" aria-label="' + esc(t("stars").replace("{n}", stars)) + '">' +
+            [1, 2, 3].map(function (i) {
+              return '<span class="g-star' + (i <= stars ? " is-on" : "") + '" style="animation-delay:' + (i * 0.15) + 's">★</span>';
+            }).join("") +
+          "</div>" +
+          '<h1 class="g-end__title">' + esc(t("end" + stars)) + "</h1>" +
+          '<p class="g-end__score">' + t("endScore").replace("{t}", fmtTime(state.seconds))
+            .replace("{m}", state.mistakes).replace("{h}", state.hintsUsed) + "</p>" +
+          '<div class="g-end__actions">' +
+            (next ? '<button class="g-btn g-btn--primary" type="button" id="g-next">' + next.icon + " " +
+              esc(t("nextLevel").replace("{l}", LEVEL_SETUP[next.id].n + "×" + LEVEL_SETUP[next.id].n)) + "</button>" : "") +
+            '<button class="g-btn' + (next ? "" : " g-btn--primary") + '" type="button" id="g-again">' + esc(t("again")) + "</button>" +
+            '<a class="g-btn" href="' + home + '">' + esc(t("more")) + "</a>" +
+          "</div>" +
+        "</div>";
+
+      document.getElementById("g-again").addEventListener("click", newPuzzle);
+      if (next) document.getElementById("g-next").addEventListener("click", function () {
+        S.setLevel(GAME_ID, next.id);
+        build();
+      });
+    }
+
+    /* ----- Keyboard: arrows move, 1–9 type, Backspace / Delete / 0 erase ----- */
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { togglePanel(false); return; }
+      if (!state || state.done || !els.panel.hidden) return;
+      var n = setup.n, i = state.sel < 0 ? 0 : state.sel;
+      var r = Math.floor(i / n), c = i % n;
+      var moves = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+      if (moves[e.key]) {
+        e.preventDefault();
+        r = (r + moves[e.key][0] + n) % n;
+        c = (c + moves[e.key][1] + n) % n;
+        state.sel = r * n + c;
+        paint();
+      } else if (/^[1-9]$/.test(e.key) && Number(e.key) <= n) {
+        enter(Number(e.key));
+      } else if (e.key === "Backspace" || e.key === "Delete" || e.key === "0") {
+        erase();
+      }
+    });
+
+    build();
+  })();
+  </script>
+</body>
+</html>

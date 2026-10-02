@@ -28,6 +28,8 @@ window.LEARNING_GAMES = {
   themes: [
     { id: "math",      icon: "🔢", color: "#FF7A30", soft: "#FFF0E5",
       name: { en: "Math", hy: "Մաթեմատիկա", ru: "Математика" } },
+    { id: "logic",     icon: "🧠", color: "#12A594", soft: "#E1F6F3",
+      name: { en: "Logic", hy: "Տրամաբանություն", ru: "Логика" } },
     { id: "geography", icon: "🌍", color: "#1FAA6B", soft: "#E3F7EC",
       name: { en: "Geography", hy: "Աշխարհագրություն", ru: "География" } },
     { id: "languages", icon: "🔤", color: "#7C5CFF", soft: "#EFEBFF",
@@ -169,6 +171,19 @@ window.LEARNING_GAMES = {
         en: "Look at the logo and guess the car brand — 3 answers, beat the timer! 45 brands, 3 levels.",
         hy: "Նայի՛ր լոգոյին և գուշակի՛ր մեքենայի մակնիշը․ 3 պատասխան, հասցրու՛ ժամանակին։ 45 մակնիշ, 3 մակարդակ։",
         ru: "Посмотри на логотип и угадай марку машины — 3 ответа, успей до конца таймера! 45 марок, 3 уровня."
+      }
+    },
+    {
+      id: "sudoku",
+      theme: "logic",
+      icon: "🧩",
+      ages: "5+",
+      url: "games/sudoku/index.html",
+      title: { en: "Sudoku", hy: "Սուդոկու", ru: "Судоку" },
+      description: {
+        en: "Fill the grid so every row, column and box has each number once. 4×4, 6×6 and 9×9 — or play with fruits!",
+        hy: "Լրացրո՛ւ ցանցը այնպես, որ ամեն տողում, սյունակում և քառակուսում ամեն թիվ լինի մեկ անգամ։ 4×4, 6×6 և 9×9, կամ խաղա՛ մրգերով։",
+        ru: "Заполни поле так, чтобы в каждой строке, столбце и квадрате каждое число было один раз. 4×4, 6×6 и 9×9 — или играй с фруктами!"
       }
     },
     {
