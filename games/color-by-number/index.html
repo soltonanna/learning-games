@@ -1,0 +1,1004 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Color by Number · Play &amp; Learn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700;800&family=Noto+Sans+Armenian:wght@500;600;700;800&display=swap">
+  <link rel="stylesheet" href="../shared/game.css">
+  <style>
+    /* ---------- Picture chooser ---------- */
+    .cbn-sub {
+      margin: 6px 0 18px;
+      text-align: center;
+      color: var(--ink-soft);
+      font-weight: 700;
+    }
+    .cbn-pics {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 14px;
+    }
+    .cbn-pic {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 10px 10px;
+      border-radius: 22px;
+      border: 3px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 16px;
+      cursor: pointer;
+      transition: transform .15s ease, border-color .15s ease;
+    }
+    .cbn-pic:hover { border-color: var(--c); transform: translateY(-2px); }
+    .cbn-pic:focus-visible { outline: 4px solid var(--c); outline-offset: 2px; }
+    .cbn-pic svg {
+      width: 100%;
+      max-width: 110px;
+      aspect-ratio: 1;
+      border-radius: 10px;
+    }
+    .cbn-pic:not(.is-done) svg { filter: grayscale(1) contrast(.55) brightness(1.3); }
+    .cbn-pic__tick {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      display: grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--right);
+      color: #fff;
+      font-size: 18px;
+      box-shadow: var(--shadow);
+    }
+    .cbn-pic__q {
+      position: absolute;
+      top: 34%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 34px;
+      font-weight: 800;
+      color: var(--c);
+      text-shadow: 0 2px 0 #fff, 0 -2px 0 #fff, 2px 0 0 #fff, -2px 0 0 #fff;
+    }
+
+    /* ---------- Board ---------- */
+    .cbn-board {
+      container-type: inline-size;
+      width: 100%;
+      max-width: 480px;
+      margin: 14px auto 0;
+    }
+    .cbn-grid {
+      display: grid;
+      grid-template-columns: repeat(var(--n), 1fr);
+      gap: 1px;
+      padding: 1px;
+      border-radius: 14px;
+      background: #DDD3E6;
+      overflow: hidden;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      transition: gap .6s ease, padding .6s ease, background .6s ease;
+    }
+    .cbn-cell {
+      display: grid;
+      place-items: center;
+      aspect-ratio: 1;
+      background: #fff;
+      color: #8A8299;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: calc(100cqw / var(--n) * .52);
+      line-height: 1;
+      cursor: pointer;
+      transition: background-color .2s ease;
+    }
+    .cbn-cell.is-match {
+      background: var(--tint);
+      color: var(--ink);
+      font-weight: 800;
+    }
+    .cbn-cell.is-filled { background: var(--col); color: transparent; cursor: default; }
+    .cbn-cell.is-filled.is-pop { animation: cbn-pop .3s ease; }
+    .cbn-cell.is-wrong { animation: cbn-wrong .45s ease; }
+    @keyframes cbn-pop { 50% { transform: scale(1.25); } }
+    @keyframes cbn-wrong {
+      0%, 100% { transform: none; background: #fff; }
+      20%, 60% { transform: translateX(-3px); background: #FFE0E6; color: var(--wrong); }
+      40%, 80% { transform: translateX(3px); background: #FFE0E6; color: var(--wrong); }
+    }
+
+    .cbn-grid.is-done { gap: 0; padding: 0; background: transparent; animation: cbn-shine 1s ease .3s; }
+    @keyframes cbn-shine { 50% { transform: scale(1.04) rotate(-1deg); } }
+
+    /* ---------- Paints ---------- */
+    .cbn-paints {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin: 18px 0 6px;
+    }
+    .cbn-paint {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      border: 4px solid #fff;
+      background: var(--col);
+      color: var(--txt);
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 26px;
+      line-height: 1;
+      box-shadow: 0 0 0 2px #E2D9EA, 0 6px 0 rgba(0, 0, 0, .12);
+      cursor: pointer;
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .cbn-paint:hover { transform: translateY(-2px); }
+    .cbn-paint:focus-visible { outline: 4px solid var(--c); outline-offset: 4px; }
+    .cbn-paint.is-active {
+      transform: translateY(-4px) scale(1.12);
+      box-shadow: 0 0 0 4px var(--ink), 0 8px 0 rgba(0, 0, 0, .15);
+    }
+    .cbn-paint.is-done { opacity: .5; font-size: 24px; }
+    .cbn-paint.is-done.is-active { opacity: 1; }
+    .cbn-paint.is-call { animation: cbn-call .6s ease 2; }
+    @keyframes cbn-call { 50% { transform: translateY(-8px) scale(1.15); } }
+
+    .cbn-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .cbn-actions .g-btn { min-height: 48px; padding: 8px 20px; font-size: 17px; }
+
+    .cbn-done {
+      margin-top: 18px;
+      text-align: center;
+      animation: g-drop .4s ease both;
+    }
+    .cbn-done .g-stars { font-size: 56px; }
+    .cbn-done .g-end__title { margin-top: 10px; font-size: 28px; }
+
+    @media (max-width: 560px) {
+      .cbn-paint { width: 48px; height: 48px; font-size: 22px; border-width: 3px; }
+      .cbn-paints { gap: 8px; }
+      .cbn-pics { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
+      .cbn-pic { font-size: 14px; padding: 10px 8px 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+
+  <script src="../../js/settings.js"></script>
+  <script src="../../js/games-data.js"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    var S = window.PlaySettings;
+    var GAME_ID = "color-by-number";
+
+    /* ======================================================================
+       COLOURS used by the pictures (names are shown and read aloud).
+       ====================================================================== */
+    var COLORS = {
+      sky:        { hex: "#BFE6FF", name: { en: "light blue",  hy: "երկնագույն",      ru: "голубой" } },
+      blue:       { hex: "#2F6FE4", name: { en: "blue",        hy: "կապույտ",         ru: "синий" } },
+      navy:       { hex: "#1D2F7A", name: { en: "dark blue",   hy: "մուգ կապույտ",    ru: "тёмно-синий" } },
+      red:        { hex: "#E8343C", name: { en: "red",         hy: "կարմիր",          ru: "красный" } },
+      orange:     { hex: "#FF8A1F", name: { en: "orange",      hy: "նարնջագույն",     ru: "оранжевый" } },
+      yellow:     { hex: "#FFD23F", name: { en: "yellow",      hy: "դեղին",           ru: "жёлтый" } },
+      cream:      { hex: "#FFF1BF", name: { en: "light yellow", hy: "բաց դեղին",      ru: "светло-жёлтый" } },
+      green:      { hex: "#34B14A", name: { en: "green",       hy: "կանաչ",           ru: "зелёный" } },
+      lightgreen: { hex: "#A6E59A", name: { en: "light green", hy: "բաց կանաչ",       ru: "светло-зелёный" } },
+      darkgreen:  { hex: "#1E6634", name: { en: "dark green",  hy: "մուգ կանաչ",      ru: "тёмно-зелёный" } },
+      mint:       { hex: "#7FE0C4", name: { en: "mint",        hy: "անանուխագույն",   ru: "мятный" } },
+      pink:       { hex: "#FF9DC0", name: { en: "pink",        hy: "վարդագույն",      ru: "розовый" } },
+      purple:     { hex: "#8A45C8", name: { en: "purple",      hy: "մանուշակագույն",  ru: "фиолетовый" } },
+      lilac:      { hex: "#C8A6F2", name: { en: "lilac",       hy: "յասամանագույն",   ru: "сиреневый" } },
+      brown:      { hex: "#8A5428", name: { en: "brown",       hy: "շագանակագույն",   ru: "коричневый" } },
+      tan:        { hex: "#E0A458", name: { en: "light brown", hy: "բաց շագանակագույն", ru: "светло-коричневый" } },
+      gray:       { hex: "#A7ABB3", name: { en: "gray",        hy: "մոխրագույն",      ru: "серый" } },
+      white:      { hex: "#FFFFFF", name: { en: "white",       hy: "սպիտակ",          ru: "белый" } },
+      black:      { hex: "#26222B", name: { en: "black",       hy: "սև",              ru: "чёрный" } }
+    };
+
+    /* ======================================================================
+       PICTURES — one string per row, one letter per cell.
+       `colors` lists [letter, colour]; the order gives the numbers 1, 2, 3…
+       To add a picture: draw it here (all rows the same length) and it
+       appears in the chooser for that level.
+       ====================================================================== */
+    var PICTURES = {
+      easy: [
+        { id: "heart", name: { en: "Heart", hy: "Սիրտ", ru: "Сердце" },
+          colors: [[".", "sky"], ["R", "red"], ["W", "white"]],
+          rows: [
+            ".RR..RR.",
+            "RRRRRRRR",
+            "RWRRRRRR",
+            "RRRRRRRR",
+            ".RRRRRR.",
+            "..RRRR..",
+            "...RR...",
+            "........"
+          ] },
+        { id: "apple", name: { en: "Apple", hy: "Խնձոր", ru: "Яблоко" },
+          colors: [[".", "sky"], ["R", "red"], ["N", "brown"], ["L", "green"]],
+          rows: [
+            "....NL..",
+            ".RRRNRR.",
+            "RRRRRRRR",
+            "RRRRRRRR",
+            "RRRRRRRR",
+            "RRRRRRRR",
+            ".RRRRRR.",
+            "..RRRR.."
+          ] },
+        { id: "fish", name: { en: "Fish", hy: "Ձուկ", ru: "Рыбка" },
+          colors: [[".", "sky"], ["O", "orange"], ["K", "black"]],
+          rows: [
+            "........",
+            "....OOO.",
+            "O..OOOOO",
+            "OOOOOKOO",
+            "OOOOOOOO",
+            "O..OOOOO",
+            "....OOO.",
+            "........"
+          ] },
+        { id: "tree", name: { en: "Tree", hy: "Ծառ", ru: "Дерево" },
+          colors: [[".", "sky"], ["G", "green"], ["N", "brown"], ["L", "lightgreen"]],
+          rows: [
+            "..GGGG..",
+            ".GGGGGG.",
+            "GGGGGGGG",
+            "GGGGGGGG",
+            ".GGGGGG.",
+            "...NN...",
+            "...NN...",
+            "LLLLLLLL"
+          ] },
+        { id: "flower", name: { en: "Flower", hy: "Ծաղիկ", ru: "Цветок" },
+          colors: [[".", "sky"], ["P", "pink"], ["Y", "yellow"], ["G", "green"]],
+          rows: [
+            "..PPPP..",
+            ".PPYYPP.",
+            ".PYYYYP.",
+            ".PPYYPP.",
+            "..PPPP..",
+            "...GG...",
+            ".GGGG...",
+            "...GG..."
+          ] }
+      ],
+      medium: [
+        { id: "house", name: { en: "House", hy: "Տուն", ru: "Домик" },
+          colors: [[".", "sky"], ["R", "red"], ["W", "cream"], ["B", "blue"], ["N", "brown"], ["G", "green"], ["Y", "yellow"]],
+          rows: [
+            "..........YY",
+            ".....RR...YY",
+            "....RRRR....",
+            "...RRRRRR...",
+            "..RRRRRRRR..",
+            ".RRRRRRRRRR.",
+            "..WWWWWWWW..",
+            "..WBBWWBBW..",
+            "..WBBWWBBW..",
+            "..WWWNNWWW..",
+            "..WWWNNWWW..",
+            "GGGGGGGGGGGG"
+          ] },
+        { id: "cat", name: { en: "Cat", hy: "Կատու", ru: "Котик" },
+          colors: [[".", "sky"], ["O", "orange"], ["P", "pink"], ["G", "green"], ["K", "black"]],
+          rows: [
+            "............",
+            ".O........O.",
+            ".OO......OO.",
+            ".OPO....OPO.",
+            ".OOOOOOOOOO.",
+            "OOOOOOOOOOOO",
+            "OOGGOOOOGGOO",
+            "OOGKOOOOKGOO",
+            "OOOOOPPOOOOO",
+            "OOOOOKKOOOOO",
+            ".OOOKOOKOOO.",
+            "..OOOOOOOO.."
+          ] },
+        { id: "butterfly", name: { en: "Butterfly", hy: "Թիթեռ", ru: "Бабочка" },
+          colors: [[".", "lightgreen"], ["K", "black"], ["P", "purple"], ["Y", "yellow"], ["B", "blue"]],
+          rows: [
+            "....K..K....",
+            ".....KK.....",
+            ".PPP.KK.PPP.",
+            "PPYPPKKPPYPP",
+            "PYYYPKKPYYYP",
+            "PPYPPKKPPYPP",
+            ".PPPPKKPPPP.",
+            "..BBBKKBBB..",
+            ".BBYBKKBYBB.",
+            ".BBBBKKBBBB.",
+            "..BB.KK.BB..",
+            "............"
+          ] },
+        { id: "ice-cream", name: { en: "Ice Cream", hy: "Պաղպաղակ", ru: "Мороженое" },
+          colors: [[".", "sky"], ["R", "red"], ["P", "pink"], ["W", "white"], ["M", "mint"], ["C", "tan"]],
+          rows: [
+            "............",
+            ".....RR.....",
+            "....PPPP....",
+            "...PPWPPP...",
+            "..PPPPPPPP..",
+            "..MMMMMMMM..",
+            ".MMMWMMMMMM.",
+            ".MMMMMMMMMM.",
+            "..CCCCCCCC..",
+            "...CCCCCC...",
+            "....CCCC....",
+            ".....CC....."
+          ] }
+      ],
+      hard: [
+        { id: "rainbow", name: { en: "Rainbow", hy: "Ծիածան", ru: "Радуга" },
+          colors: [[".", "sky"], ["R", "red"], ["O", "orange"], ["Y", "yellow"], ["G", "green"], ["B", "blue"], ["V", "purple"], ["W", "white"]],
+          rows: [
+            "................",
+            "....RRRRRRRR....",
+            "..RRRRRRRRRRRR..",
+            ".RROOOOOOOOOORR.",
+            "RROOYYYYYYYYOORR",
+            "ROOYYGGGGGGYYOOR",
+            "ROYYGGBBBBGGYYOR",
+            "ROYGGBBVVBBGGYOR",
+            "ROYGBBV..VBBGYOR",
+            "ROYGBV....VBGYOR",
+            "ROYGBV....VBGYOR",
+            "ROYGBV....VBGYOR",
+            ".WWWWW....WWWWW.",
+            "WWWWWWW..WWWWWWW",
+            ".WWWWW....WWWWW.",
+            "................"
+          ] },
+        { id: "rocket", name: { en: "Rocket", hy: "Հրթիռ", ru: "Ракета" },
+          colors: [[".", "navy"], ["Y", "yellow"], ["R", "red"], ["W", "white"], ["G", "gray"], ["B", "sky"], ["O", "orange"], ["P", "purple"]],
+          rows: [
+            ".......RR......Y",
+            "......RRRR......",
+            ".Y...RRRRRR.....",
+            ".....WWWWWG.....",
+            ".....WWBBWG....Y",
+            ".....WBBBBG.....",
+            ".....WBBBBG.....",
+            ".....WWBBWG.....",
+            "..Y..WWWWWG.....",
+            ".....WWWWWG.....",
+            "....RWWWWWGR....",
+            "PP.RRWWWWWGRR...",
+            "PPPRR.OOOO.RR...",
+            "PP....OYYO....Y.",
+            ".Y.....YY.......",
+            "................"
+          ] },
+        { id: "ararat", name: { en: "Mount Ararat", hy: "Արարատ լեռը", ru: "Гора Арарат" },
+          colors: [[".", "sky"], ["Y", "yellow"], ["W", "white"], ["M", "lilac"], ["D", "purple"], ["G", "lightgreen"], ["T", "darkgreen"], ["N", "brown"]],
+          rows: [
+            "................",
+            "............YYY.",
+            "............YYY.",
+            "......W.....YYY.",
+            ".....WWW........",
+            "....WWWWW.......",
+            "...WWMWWMW...W..",
+            "...MMMMMMMM.WWW.",
+            "..MMMMMMMMMDDDD.",
+            ".MMMMMMMMMMDDDDD",
+            "MMMMMMMMMMMMDDDD",
+            "MMMMMMMMMMMMMMMM",
+            "GGGGGGGGGGGGGGGG",
+            "GGTGGGGGGGGGGTGG",
+            "GTTTGGGGGGGGTTTG",
+            "GGNGGGGGGGGGGNGG"
+          ] },
+        { id: "sailboat", name: { en: "Sailboat", hy: "Առագաստանավ", ru: "Парусник" },
+          colors: [[".", "sky"], ["W", "white"], ["Y", "yellow"], ["N", "brown"], ["R", "red"], ["H", "orange"], ["B", "blue"]],
+          rows: [
+            "................",
+            ".WWW.....N...YY.",
+            "WWWWW....NR..YY.",
+            ".........NWW....",
+            "........WNWWW...",
+            ".......WWNWWWW..",
+            "......WWWNRRRRR.",
+            ".....WWWWNWWWWWW",
+            "....WWWWWNWWWWWW",
+            ".........N......",
+            "..HHHHHHHHHHHHH.",
+            "...HHHHHHHHHHH..",
+            "BBBBHHHHHHHHHBBB",
+            "BBBBBBBBBBBBBBBB",
+            "BWWBBBBWWBBBBWWB",
+            "BBBBBBBBBBBBBBBB"
+          ] }
+      ]
+    };
+
+    /* Level rules: glow = cells of the chosen number light up. */
+    var LEVEL_CFG = {
+      easy:   { glow: true },
+      medium: { glow: true },
+      hard:   { glow: false }
+    };
+
+    /* ---------- Texts ---------- */
+    var UI = {
+      allGames: { en: "All games", hy: "Բոլոր խաղերը", ru: "Все игры" },
+      settings: { en: "Settings", hy: "Կարգավորումներ", ru: "Настройки" },
+      language: { en: "Language", hy: "Լեզու", ru: "Язык" },
+      level: { en: "Level", hy: "Մակարդակ", ru: "Уровень" },
+      done: { en: "Done", hy: "Պատրաստ է", ru: "Готово" },
+      readAloud: { en: "Read aloud", hy: "Կարդալ բարձրաձայն", ru: "Прочитать вслух" },
+      levelNote: {
+        en: "Changing the level opens new pictures.",
+        hy: "Մակարդակը փոխելիս կբացվեն նոր նկարներ։",
+        ru: "После смены уровня откроются новые картинки."
+      },
+      choose: { en: "Pick a picture to colour!", hy: "Ընտրի՛ր նկար ներկելու համար։", ru: "Выбери картинку для раскраски!" },
+      chooseSub: {
+        en: "{s}×{s} squares · {c} colours",
+        hy: "{s}×{s} վանդակ · {c} գույն",
+        ru: "{s}×{s} клеток · {c} цветов"
+      },
+      ask: {
+        en: "Pick a paint and colour every square with its number!",
+        hy: "Ընտրի՛ր ներկ և ներկի՛ր նրա համարով բոլոր վանդակները։",
+        ru: "Выбери краску и раскрась все клетки с её номером!"
+      },
+      paintIs: { en: "Number {n} is {c}.", hy: "{n} համարը՝ {c}։", ru: "Номер {n} — {c}." },
+      paintLeft: { en: "{k} left", hy: "մնաց {k}", ru: "осталось {k}" },
+      paintDone: { en: "All the {c} squares are done!", hy: "Բոլոր {c} վանդակները ներկված են։", ru: "Все клетки цвета «{c}» готовы!" },
+      paintLabel: { en: "Paint {n}: {c}", hy: "Ներկ {n}՝ {c}", ru: "Краска {n}: {c}" },
+      wrong: {
+        en: "Oops! That square is number {n} — it needs {c}.",
+        hy: "Վա՜յ։ Այդ վանդակը {n} համարն է․ նրան պետք է {c}։",
+        ru: "Ой! Это клетка номер {n} — ей нужен {c}."
+      },
+      drag: {
+        en: "Tip: hold and slide your finger to paint many squares at once!",
+        hy: "Հուշում․ սեղմի՛ր ու սահեցրո՛ւ մատդ՝ միանգամից շատ վանդակ ներկելու համար։",
+        ru: "Подсказка: зажми и веди пальцем, чтобы красить много клеток сразу!"
+      },
+      finished: { en: "You painted: {p}!", hy: "Դու նկարեցիր՝ {p}։", ru: "Ты нарисовал: {p}!" },
+      end3: { en: "A perfect picture!", hy: "Կատարյալ նկար է։", ru: "Идеальная картинка!" },
+      end2: { en: "Beautiful work!", hy: "Գեղեցիկ աշխատանք է։", ru: "Красивая работа!" },
+      end1: { en: "You did it — great job!", hy: "Դու կարողացար․ ապրե՛ս։", ru: "Ты справился — молодец!" },
+      mistakes: {
+        en: "Mistakes: <b>{n}</b>",
+        hy: "Սխալներ՝ <b>{n}</b>",
+        ru: "Ошибок: <b>{n}</b>"
+      },
+      stars: { en: "{n} out of 3 stars", hy: "{n} աստղ 3-ից", ru: "{n} из 3 звёзд" },
+      next: { en: "Next picture", hy: "Հաջորդ նկարը", ru: "Следующая картинка" },
+      pictures: { en: "All pictures", hy: "Բոլոր նկարները", ru: "Все картинки" },
+      again: { en: "Colour again", hy: "Նորից ներկել", ru: "Раскрасить снова" },
+      restart: { en: "Start over", hy: "Սկսել նորից", ru: "Начать заново" },
+      nextLevel: { en: "Try {l} level", hy: "Փորձի՛ր «{l}» մակարդակը", ru: "Попробуй уровень «{l}»" },
+      allDone: {
+        en: "You coloured every picture on this level! 🏆",
+        hy: "Դու ներկեցիր այս մակարդակի բոլոր նկարները։ 🏆",
+        ru: "Ты раскрасил все картинки этого уровня! 🏆"
+      },
+      more: { en: "More games", hy: "Այլ խաղեր", ru: "Другие игры" }
+    };
+
+    /* ---------- Helpers ---------- */
+    function t(key) { return S.tr(UI[key]); }
+    function esc(s) {
+      return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+    function fill(text, map) {
+      return text.replace(/\{(\w)\}/g, function (m, k) { return map[k] != null ? map[k] : m; });
+    }
+    function colourName(id) { return S.tr(COLORS[id].name); }
+
+    /** Dark text on light paints, white text on dark ones. */
+    function textOn(hex) {
+      var r = parseInt(hex.substr(1, 2), 16), g = parseInt(hex.substr(3, 2), 16), b = parseInt(hex.substr(5, 2), 16);
+      return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? "#2B2340" : "#FFFFFF";
+    }
+    /** Pale version of a colour for the glowing hint cells. */
+    function tint(hex) {
+      var out = "#";
+      for (var i = 1; i < 7; i += 2) {
+        var v = parseInt(hex.substr(i, 2), 16);
+        v = Math.round(v + (255 - v) * 0.62);
+        out += ("0" + v.toString(16)).slice(-2);
+      }
+      return out;
+    }
+
+    /** Turn a picture into numbers: cells[i] = 1-based paint number. */
+    function parse(pic) {
+      var map = {};
+      pic.colors.forEach(function (c, i) { map[c[0]] = i + 1; });
+      var cells = [];
+      pic.rows.forEach(function (row) {
+        for (var x = 0; x < row.length; x++) cells.push(map[row.charAt(x)] || 1);
+      });
+      return { size: pic.rows.length, cells: cells };
+    }
+
+    /** Small SVG preview of a picture (rows drawn as runs of the same colour). */
+    function svgOf(pic) {
+      var n = pic.rows.length, map = {}, rects = "";
+      pic.colors.forEach(function (c) { map[c[0]] = COLORS[c[1]].hex; });
+      pic.rows.forEach(function (row, y) {
+        var x = 0;
+        while (x < row.length) {
+          var ch = row.charAt(x), w = 1;
+          while (x + w < row.length && row.charAt(x + w) === ch) w++;
+          rects += '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="1" fill="' + (map[ch] || "#fff") + '"/>';
+          x += w;
+        }
+      });
+      return '<svg viewBox="0 0 ' + n + " " + n + '" shape-rendering="crispEdges" aria-hidden="true">' + rects + "</svg>";
+    }
+
+    /* Finished pictures are remembered in the browser. */
+    var DONE_KEY = "playlearn-" + GAME_ID + "-done";
+    var memory = {};
+    function store(key, value) {
+      memory[key] = value;
+      try { window.localStorage.setItem(key, value); } catch (e) { /* private mode */ }
+    }
+    function load(key) {
+      try { var v = window.localStorage.getItem(key); if (v != null) return v; } catch (e) { /* ignore */ }
+      return memory[key] != null ? memory[key] : null;
+    }
+    function loadDone() {
+      try { var a = JSON.parse(load(DONE_KEY) || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+    }
+
+    /* ---------- Read-aloud ---------- */
+    var canSpeak = "speechSynthesis" in window;
+    function voiceFor(lang) {
+      if (!canSpeak) return null;
+      var code = S.langInfo(lang).speech.toLowerCase();
+      var voices = window.speechSynthesis.getVoices() || [];
+      var exact = voices.filter(function (v) { return v.lang && v.lang.toLowerCase().replace("_", "-") === code; })[0];
+      return exact || voices.filter(function (v) { return v.lang && v.lang.toLowerCase().indexOf(code.slice(0, 2)) === 0; })[0] || null;
+    }
+    function canSpeakLang(lang) { return canSpeak && (lang === "en" || !!voiceFor(lang)); }
+    function speak(text) {
+      if (!canSpeak || !text) return;
+      var lang = S.get("lang");
+      window.speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang = S.langInfo(lang).speech;
+      var v = voiceFor(lang);
+      if (v) u.voice = v;
+      u.rate = 0.9;
+      window.speechSynthesis.speak(u);
+    }
+
+    /* ---------- Page ---------- */
+    var catalog = window.LEARNING_GAMES || { themes: [], games: [] };
+    var game = catalog.games.filter(function (g) { return g.id === GAME_ID; })[0] ||
+      { title: "Color by Number", icon: "🖌️", theme: "" };
+    var theme = catalog.themes.filter(function (th) { return th.id === game.theme; })[0] ||
+      { color: "#EC4C8A", soft: "#FDE8F0" };
+    var home = "../../index.html" + (game.theme ? "#" + game.theme : "");
+    var root = document.getElementById("game");
+    document.documentElement.style.setProperty("--c", theme.color);
+    document.documentElement.style.setProperty("--soft", theme.soft);
+
+    var lang, level, cfg, state = null, els = {};
+    var done = loadDone();
+
+    function seg(attr, items, current) {
+      return '<div class="g-seg" role="group">' + items.map(function (it) {
+        var on = String(it.value) === String(current);
+        return '<button type="button" class="g-seg__btn' + (on ? " is-active" : "") + '" data-' + attr + '="' + it.value + '"' +
+          ' aria-pressed="' + on + '"' + (it.lang ? ' lang="' + it.lang + '"' : "") + ">" + it.label + "</button>";
+      }).join("") + "</div>";
+    }
+
+    function build(keepGame) {
+      if (canSpeak) window.speechSynthesis.cancel();
+      lang = S.get("lang");
+      level = S.getLevel(GAME_ID);
+      cfg = LEVEL_CFG[level];
+      var levelInfo = S.LEVELS.filter(function (l) { return l.id === level; })[0];
+      var title = S.tr(game.title);
+      document.documentElement.lang = lang;
+      document.title = title + " · Play & Learn";
+
+      root.innerHTML =
+        '<header class="g-top">' +
+          '<a class="g-back" href="' + home + '">' +
+            '<span aria-hidden="true">←</span> <span class="g-back__label">' + esc(t("allGames")) + "</span></a>" +
+          '<div class="g-title"><span aria-hidden="true">' + game.icon + "</span> " + esc(title) + "</div>" +
+          '<div class="g-right">' +
+            '<button class="g-gear" type="button" id="g-gear" aria-expanded="false" aria-controls="g-panel" title="' + esc(t("settings")) + '">' +
+              '<span aria-hidden="true">⚙️</span><span class="g-gear__lang">' + esc(S.langInfo(lang).label) + "</span>" +
+              '<span class="g-gear__level">' + levelInfo.icon + '<span class="g-gear__lvname"> ' + esc(S.tr(levelInfo.name)) + "</span></span>" +
+            "</button>" +
+            '<div class="g-score" id="g-scorebox" aria-label="' + esc(t("done")) + '"><span aria-hidden="true">🖌️</span> <b id="g-score">0%</b></div>' +
+          "</div>" +
+          '<div class="g-panel" id="g-panel" hidden>' +
+            '<div class="g-panel__row"><span class="g-panel__label">🌐 ' + esc(t("language")) + "</span>" +
+              seg("lang", S.LANGS.map(function (l) { return { value: l.id, label: esc(l.label), lang: l.id }; }), lang) +
+            "</div>" +
+            '<div class="g-panel__row"><span class="g-panel__label">🎯 ' + esc(t("level")) + "</span>" +
+              seg("level", S.LEVELS.map(function (l) {
+                return { value: l.id, label: l.icon + "&nbsp;" + esc(S.tr(l.name)) };
+              }), level) +
+            "</div>" +
+            '<p class="g-panel__note">' + esc(t("levelNote")) + "</p>" +
+          "</div>" +
+        "</header>" +
+        '<div class="g-progress" id="g-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100">' +
+          '<div class="g-progress__bar" id="g-bar"></div></div>' +
+        '<main class="g-stage"><div class="g-card" id="g-card"></div></main>';
+
+      els.card = document.getElementById("g-card");
+      els.panel = document.getElementById("g-panel");
+      els.gear = document.getElementById("g-gear");
+      els.score = document.getElementById("g-score");
+      els.scorebox = document.getElementById("g-scorebox");
+      els.bar = document.getElementById("g-bar");
+      els.progress = document.getElementById("g-progress");
+
+      els.gear.addEventListener("click", function (e) { e.stopPropagation(); togglePanel(els.panel.hidden); });
+      els.panel.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var btn = e.target.closest("[data-lang],[data-level]");
+        if (!btn) return;
+        if (btn.hasAttribute("data-lang")) {
+          // Language only changes the words — the picture keeps its paint.
+          S.set("lang", btn.getAttribute("data-lang"));
+          build(true);
+        } else {
+          S.setLevel(GAME_ID, btn.getAttribute("data-level"));
+          build(false);
+        }
+        togglePanel(true);
+      });
+
+      if (keepGame && state && state.level === level) renderBoard();
+      else { state = null; renderChooser(); }
+    }
+
+    function togglePanel(open) {
+      if (!els.panel) return;
+      els.panel.hidden = !open;
+      els.gear.setAttribute("aria-expanded", String(open));
+    }
+    document.addEventListener("click", function () { togglePanel(false); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") togglePanel(false); });
+
+    function setProgress(pct) {
+      els.bar.style.width = pct + "%";
+      els.progress.setAttribute("aria-valuenow", pct);
+      els.score.textContent = pct + "%";
+    }
+
+    /* ---------- Picture chooser ---------- */
+    function renderChooser() {
+      if (canSpeak) window.speechSynthesis.cancel();
+      els.scorebox.hidden = true;
+      els.progress.hidden = true;
+      var pics = PICTURES[level];
+      var counts = pics.map(function (p) { return p.colors.length; });
+      var minC = Math.min.apply(null, counts), maxC = Math.max.apply(null, counts);
+      var size = pics[0].rows.length;
+      var allDone = pics.every(function (p) { return done.indexOf(p.id) !== -1; });
+
+      els.card.innerHTML =
+        '<div class="g-prompt">' +
+          '<h1 class="g-question">' + esc(t("choose")) + "</h1>" +
+          (canSpeak ? '<button class="g-say" type="button" aria-label="' + esc(t("readAloud")) + '"' +
+            (canSpeakLang(lang) ? "" : " hidden") + ">🔊</button>" : "") +
+        "</div>" +
+        '<p class="cbn-sub">' + esc(fill(t("chooseSub"), { s: size, c: minC === maxC ? minC : minC + "–" + maxC })) +
+          (allDone ? "<br>" + esc(t("allDone")) : "") + "</p>" +
+        '<div class="cbn-pics">' + pics.map(function (p, i) {
+          var isDone = done.indexOf(p.id) !== -1;
+          return '<button type="button" class="cbn-pic' + (isDone ? " is-done" : "") + '" data-pic="' + i + '">' +
+            svgOf(p) +
+            (isDone ? '<span class="cbn-pic__tick" aria-hidden="true">✓</span>' : '<span class="cbn-pic__q" aria-hidden="true">?</span>') +
+            "<span>" + esc(isDone ? S.tr(p.name) : "#" + (i + 1)) + "</span></button>";
+        }).join("") + "</div>";
+
+      els.card.querySelectorAll("[data-pic]").forEach(function (b) {
+        b.addEventListener("click", function () { startPicture(Number(b.getAttribute("data-pic"))); });
+      });
+      var say = els.card.querySelector(".g-say");
+      if (say) say.addEventListener("click", function () { speak(t("choose")); });
+    }
+
+    /* ---------- Colouring ---------- */
+    function startPicture(index) {
+      var pic = PICTURES[level][index];
+      var data = parse(pic);
+      var left = pic.colors.map(function () { return 0; });
+      data.cells.forEach(function (n) { left[n - 1]++; });
+      state = {
+        level: level,
+        index: index,
+        pic: pic,
+        size: data.size,
+        cells: data.cells,
+        filled: data.cells.map(function () { return false; }),
+        left: left,
+        total: data.cells.length,
+        count: 0,
+        selected: 1,
+        mistakes: 0,
+        tipShown: false,
+        finished: false,
+        lastSay: null
+      };
+      renderBoard();
+    }
+
+    function renderBoard() {
+      var p = state.pic;
+      els.scorebox.hidden = false;
+      els.progress.hidden = false;
+
+      var cellsHtml = "";
+      for (var i = 0; i < state.total; i++) {
+        var n = state.cells[i];
+        var hex = COLORS[p.colors[n - 1][1]].hex;
+        cellsHtml += '<div class="cbn-cell' + (state.filled[i] ? " is-filled" : "") + '" data-i="' + i + '" style="--col:' + hex + ";--tint:" + tint(hex) + '">' + n + "</div>";
+      }
+
+      els.card.innerHTML =
+        '<div class="g-prompt">' +
+          '<h1 class="g-question" id="cbn-q">' + esc(state.finished ? fill(t("finished"), { p: S.tr(p.name) }) : t("ask")) + "</h1>" +
+          (canSpeak ? '<button class="g-say" type="button" aria-label="' + esc(t("readAloud")) + '"' +
+            (canSpeakLang(lang) ? "" : " hidden") + ">🔊</button>" : "") +
+        "</div>" +
+        '<div class="cbn-board"><div class="cbn-grid' + (state.finished ? " is-done" : "") + '" id="cbn-grid" style="--n:' + state.size + '" aria-hidden="true">' +
+          cellsHtml + "</div></div>" +
+        '<div id="cbn-bottom"></div>';
+
+      els.grid = document.getElementById("cbn-grid");
+      els.cells = [].slice.call(els.grid.children);
+      els.bottom = document.getElementById("cbn-bottom");
+
+      var say = els.card.querySelector(".g-say");
+      if (say) say.addEventListener("click", function () {
+        speak(state.lastSay || document.getElementById("cbn-q").textContent);
+      });
+
+      bindGrid();
+      if (state.finished) renderDone(false);
+      else renderPaints();
+      updateProgress();
+    }
+
+    function renderPaints() {
+      var p = state.pic;
+      els.bottom.innerHTML =
+        '<div class="cbn-paints" role="group">' + p.colors.map(function (c, i) {
+          var n = i + 1, hex = COLORS[c[1]].hex, isDone = state.left[i] === 0;
+          return '<button type="button" class="cbn-paint' + (n === state.selected ? " is-active" : "") + (isDone ? " is-done" : "") + '"' +
+            ' data-n="' + n + '" style="--col:' + hex + ";--txt:" + textOn(hex) + '"' +
+            ' aria-pressed="' + (n === state.selected) + '" aria-label="' + esc(fill(t("paintLabel"), { n: n, c: colourName(c[1]) })) + '">' +
+            (isDone ? "✓" : n) + "</button>";
+        }).join("") + "</div>" +
+        '<p class="g-feedback" id="cbn-fb" aria-live="polite">&nbsp;</p>' +
+        '<div class="cbn-actions">' +
+          '<button type="button" class="g-btn" id="cbn-pics">🖼️ ' + esc(t("pictures")) + "</button>" +
+          '<button type="button" class="g-btn" id="cbn-restart">🔄 ' + esc(t("restart")) + "</button>" +
+        "</div>";
+
+      els.fb = document.getElementById("cbn-fb");
+      els.paints = [].slice.call(els.bottom.querySelectorAll(".cbn-paint"));
+      els.paints.forEach(function (b) {
+        b.addEventListener("click", function () { select(Number(b.getAttribute("data-n")), true); });
+      });
+      document.getElementById("cbn-pics").addEventListener("click", function () { state = null; renderChooser(); });
+      document.getElementById("cbn-restart").addEventListener("click", function () { startPicture(state.index); });
+      select(state.selected, false);
+    }
+
+    function feedback(text, cls) {
+      if (!els.fb) return;
+      els.fb.className = "g-feedback" + (cls ? " " + cls : "");
+      els.fb.textContent = text || " ";
+      state.lastSay = text || null;
+    }
+
+    function paintInfo(n) {
+      var id = state.pic.colors[n - 1][1];
+      var text = fill(t("paintIs"), { n: n, c: colourName(id) });
+      if (state.left[n - 1] > 0 && state.left[n - 1] < state.total) text += " (" + fill(t("paintLeft"), { k: state.left[n - 1] }) + ")";
+      return text;
+    }
+
+    function select(n, byTap) {
+      state.selected = n;
+      els.paints.forEach(function (b) {
+        var on = Number(b.getAttribute("data-n")) === n;
+        b.classList.toggle("is-active", on);
+        b.classList.remove("is-call");
+        b.setAttribute("aria-pressed", String(on));
+      });
+      els.cells.forEach(function (el, i) {
+        el.classList.toggle("is-match", cfg.glow && !state.filled[i] && state.cells[i] === n);
+      });
+      if (byTap) feedback(state.left[n - 1] === 0 ? fill(t("paintDone"), { c: colourName(state.pic.colors[n - 1][1]) }) : paintInfo(n), "");
+    }
+
+    /* Tap a square, or hold and slide across many squares. */
+    function bindGrid() {
+      var painting = false, last = -1;
+      function cellIndex(e) {
+        var el = document.elementFromPoint(e.clientX, e.clientY);
+        el = el && el.closest ? el.closest(".cbn-cell") : null;
+        return el && els.grid.contains(el) ? Number(el.getAttribute("data-i")) : -1;
+      }
+      els.grid.addEventListener("pointerdown", function (e) {
+        if (state.finished) return;
+        var i = cellIndex(e);
+        if (i < 0) return;
+        e.preventDefault();
+        painting = true;
+        last = i;
+        try { els.grid.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+        paint(i, true);
+      });
+      els.grid.addEventListener("pointermove", function (e) {
+        if (!painting || state.finished) return;
+        var i = cellIndex(e);
+        if (i < 0 || i === last) return;
+        last = i;
+        paint(i, false);
+      });
+      function stop() { painting = false; last = -1; }
+      els.grid.addEventListener("pointerup", stop);
+      els.grid.addEventListener("pointercancel", stop);
+      els.grid.addEventListener("lostpointercapture", stop);
+    }
+
+    function paint(i, isTap) {
+      if (state.filled[i]) return;
+      var el = els.cells[i];
+      var n = state.cells[i];
+      if (n !== state.selected) {
+        // Sliding over other numbers is fine; only a tap on a wrong square counts.
+        if (!isTap) return;
+        state.mistakes++;
+        el.classList.remove("is-wrong");
+        void el.offsetWidth;
+        el.classList.add("is-wrong");
+        var id = state.pic.colors[n - 1][1];
+        feedback(fill(t("wrong"), { n: n, c: colourName(id) }), "is-wrong");
+        var btn = els.paints[n - 1];
+        btn.classList.remove("is-call");
+        void btn.offsetWidth;
+        btn.classList.add("is-call");
+        return;
+      }
+
+      state.filled[i] = true;
+      state.count++;
+      state.left[n - 1]--;
+      el.classList.remove("is-match", "is-wrong");
+      el.classList.add("is-filled", "is-pop");
+      updateProgress();
+
+      if (isTap && !state.tipShown && state.count === 3) {
+        state.tipShown = true;
+        feedback(t("drag"), "");
+      }
+
+      if (state.left[n - 1] === 0) {
+        var b = els.paints[n - 1];
+        b.classList.add("is-done");
+        b.textContent = "✓";
+        if (state.count === state.total) return finish();
+        feedback(fill(t("paintDone"), { c: colourName(state.pic.colors[n - 1][1]) }), "is-right");
+        // Move on to the next paint that still has squares.
+        for (var k = 1; k <= state.left.length; k++) {
+          var next = ((n - 1 + k) % state.left.length) + 1;
+          if (state.left[next - 1] > 0) { select(next, false); break; }
+        }
+      }
+    }
+
+    function updateProgress() {
+      setProgress(Math.round(state.count / state.total * 100));
+    }
+
+    function finish() {
+      state.finished = true;
+      if (done.indexOf(state.pic.id) === -1) {
+        done.push(state.pic.id);
+        store(DONE_KEY, JSON.stringify(done));
+      }
+      els.grid.classList.add("is-done");
+      var text = fill(t("finished"), { p: S.tr(state.pic.name) });
+      document.getElementById("cbn-q").textContent = text;
+      speak(text);
+      setTimeout(function () { if (state && state.finished) renderDone(true); }, 900);
+    }
+
+    function starsFor(m) { return m <= 2 ? 3 : m <= 6 ? 2 : 1; }
+
+    function renderDone() {
+      var stars = starsFor(state.mistakes);
+      var pics = PICTURES[level];
+      var nextIdx = -1;
+      for (var k = 1; k < pics.length; k++) {
+        var j = (state.index + k) % pics.length;
+        if (done.indexOf(pics[j].id) === -1) { nextIdx = j; break; }
+      }
+      var idx = S.LEVELS.map(function (l) { return l.id; }).indexOf(level);
+      var nextLevel = nextIdx < 0 ? S.LEVELS[idx + 1] : null;
+      if (nextIdx < 0 && !nextLevel) nextIdx = (state.index + 1) % pics.length;
+
+      els.bottom.innerHTML =
+        '<div class="cbn-done">' +
+          '<div class="g-stars" aria-label="' + esc(fill(t("stars"), { n: stars })) + '">' +
+            [1, 2, 3].map(function (i) {
+              return '<span class="g-star' + (i <= stars ? " is-on" : "") + '" style="animation-delay:' + (i * 0.15) + 's">★</span>';
+            }).join("") +
+          "</div>" +
+          '<h2 class="g-end__title">' + esc(t("end" + stars)) + "</h2>" +
+          '<p class="g-end__score">' + fill(t("mistakes"), { n: state.mistakes }) + "</p>" +
+          '<div class="g-end__actions">' +
+            (nextIdx >= 0 ? '<button class="g-btn g-btn--primary" type="button" id="cbn-next">▶ ' + esc(t("next")) + "</button>" : "") +
+            (nextLevel ? '<button class="g-btn g-btn--primary" type="button" id="cbn-level">' + nextLevel.icon + " " +
+              esc(fill(t("nextLevel"), { l: S.tr(nextLevel.name) })) + "</button>" : "") +
+            '<button class="g-btn" type="button" id="cbn-pics">🖼️ ' + esc(t("pictures")) + "</button>" +
+            '<button class="g-btn" type="button" id="cbn-again">🔄 ' + esc(t("again")) + "</button>" +
+            '<a class="g-btn" href="' + home + '">' + esc(t("more")) + "</a>" +
+          "</div>" +
+        "</div>";
+
+      if (nextIdx >= 0) document.getElementById("cbn-next").addEventListener("click", function () { startPicture(nextIdx); });
+      if (nextLevel) document.getElementById("cbn-level").addEventListener("click", function () {
+        S.setLevel(GAME_ID, nextLevel.id);
+        build(false);
+      });
+      document.getElementById("cbn-pics").addEventListener("click", function () { state = null; renderChooser(); });
+      document.getElementById("cbn-again").addEventListener("click", function () { startPicture(state.index); });
+    }
+
+    // Voices load a moment after the page; show 🔊 once a voice for the language appears.
+    if (canSpeak && "onvoiceschanged" in window.speechSynthesis) {
+      window.speechSynthesis.addEventListener("voiceschanged", function () {
+        var say = els.card && els.card.querySelector(".g-say");
+        if (say) say.hidden = !canSpeakLang(lang);
+      });
+    }
+
+    build(false);
+  })();
+  </script>
+</body>
+</html>
