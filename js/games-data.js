@@ -239,6 +239,19 @@ window.LEARNING_GAMES = {
       }
     },
     {
+      id: "tangram",
+      theme: "logic",
+      icon: "🔷",
+      ages: "4+",
+      url: "games/tangram/index.html",
+      title: { en: "Tangram", hy: "Տանգրամ", ru: "Танграм" },
+      description: {
+        en: "Put the 7 geometric pieces together to build a house, a cat, a rocket and more. 10 figures, 3 levels.",
+        hy: "Միացրո՛ւ 7 երկրաչափական մասերը և հավաքի՛ր տնակ, կատու, հրթիռ և այլն։ 10 պատկեր, 3 մակարդակ։",
+        ru: "Сложи 7 геометрических деталей и собери домик, кошку, ракету и не только. 10 фигур, 3 уровня."
+      }
+    },
+    {
       id: "color-mixer",
       theme: "art",
       icon: "🎨",

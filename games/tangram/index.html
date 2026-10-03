@@ -1,0 +1,1037 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tangram · Play &amp; Learn</title>
+  <link rel="icon" href="../../favicon.ico" sizes="32x32">
+  <link rel="icon" href="../../img/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../../img/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;600;700;800&family=Noto+Sans+Armenian:wght@500;600;700;800&display=swap">
+  <link rel="stylesheet" href="../shared/game.css">
+  <style>
+    :root {
+      --shadow-fill: #4A4462;
+      --board: #F7F3FF;
+    }
+
+    /* ---------- Figure picker ---------- */
+    .tg-figs {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin: 0 0 16px;
+    }
+    .tg-fig {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      width: 76px;
+      padding: 6px 4px 5px;
+      border-radius: 16px;
+      border: 3px solid var(--line);
+      background: #fff;
+      color: var(--ink-soft);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 13px;
+      line-height: 1.1;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tg-fig:hover { border-color: var(--c); }
+    .tg-fig:focus-visible { outline: 4px solid var(--c); outline-offset: 2px; }
+    .tg-fig.is-active { border-color: var(--c); background: var(--soft); color: var(--ink); }
+    .tg-fig svg { width: 44px; height: 40px; fill: var(--shadow-fill); }
+    .tg-fig.is-active svg { fill: var(--c); }
+    .tg-fig__name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tg-fig__done {
+      position: absolute;
+      top: -8px;
+      right: -6px;
+      display: grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--right);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+      box-shadow: 0 2px 0 rgba(0,0,0,.12);
+    }
+
+    .tg-help {
+      margin: 6px 0 0;
+      color: var(--ink-soft);
+      font-weight: 700;
+      font-size: 16px;
+      text-align: center;
+    }
+
+    /* ---------- Board ---------- */
+    .tg-board {
+      display: block;
+      width: 100%;
+      height: auto;
+      margin: 14px auto 0;
+      border-radius: 24px;
+      background:
+        radial-gradient(circle, rgba(124, 92, 255, .10) 1.2px, transparent 1.6px) 0 0 / 22px 22px,
+        var(--board);
+      border: 3px solid var(--line);
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .tg-shadow { fill: var(--shadow-fill); }
+    .tg-slot { fill: none; stroke: rgba(255, 255, 255, .55); stroke-width: 1; stroke-dasharray: 3 3; stroke-linejoin: round; }
+    .tg-shadow-wrap.is-won .tg-shadow { fill: #FFC531; transition: fill .4s ease; }
+    .tg-shadow-wrap.is-won .tg-slot { stroke: transparent; }
+
+    .tg-piece { cursor: grab; outline: none; }
+    .tg-piece.is-drag { cursor: grabbing; }
+    .tg-piece.is-glide { transition: transform .5s cubic-bezier(.3, .7, .3, 1); }
+    .tg-piece__shape {
+      stroke: #fff;
+      stroke-width: 1.4;
+      stroke-linejoin: round;
+      transform-box: fill-box;
+      transform-origin: center;
+      filter: drop-shadow(0 2px 0 rgba(43, 35, 64, .25));
+      transition: filter .15s ease;
+    }
+    .tg-piece.is-drag .tg-piece__shape { filter: drop-shadow(0 6px 4px rgba(43, 35, 64, .3)); }
+    .tg-piece.is-in .tg-piece__shape { filter: none; }
+    .tg-piece.is-selected .tg-piece__shape { stroke: var(--ink); stroke-width: 2; stroke-dasharray: 4 3; }
+    .tg-piece:focus-visible .tg-piece__shape { stroke: var(--ink); stroke-width: 2.4; }
+    .tg-piece.is-spin .tg-piece__shape { animation: tg-spin .28s ease; }
+    .tg-piece.is-flip .tg-piece__shape { animation: tg-flip .28s ease; }
+    .tg-piece.is-pop .tg-piece__shape { animation: tg-pop .4s ease; }
+    .tg-piece.is-hint .tg-piece__shape { animation: tg-pop .5s ease .45s; }
+    .tg-piece.is-won .tg-piece__shape { animation: tg-pop .5s ease both; }
+    @keyframes tg-spin { from { transform: rotate(-90deg); } to { transform: none; } }
+    @keyframes tg-flip { from { transform: scaleX(-1); } to { transform: none; } }
+    @keyframes tg-pop { 40% { transform: scale(1.12); } 100% { transform: none; } }
+
+    /* ---------- Tools ---------- */
+    .tg-tools {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .tg-tool {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 50px;
+      padding: 6px 18px;
+      border-radius: 999px;
+      border: 3px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 17px;
+      cursor: pointer;
+    }
+    .tg-tool:hover:not(:disabled) { border-color: var(--c); }
+    .tg-tool:disabled { opacity: .45; cursor: default; }
+    .tg-tool--primary { background: var(--c); border-color: var(--c); color: #fff; }
+    .tg-tool--primary:hover:not(:disabled) { filter: brightness(1.06); }
+
+    .tg-end__pic { display: block; width: 150px; height: 130px; margin: 0 auto 8px; }
+    .tg-end__note { margin: -12px 0 22px; font-weight: 800; color: #178C57; }
+
+    @media (max-width: 600px) {
+      .g-card { padding: 16px 12px; }
+      .tg-fig { width: 62px; font-size: 11px; border-radius: 14px; }
+      .tg-fig svg { width: 36px; height: 32px; }
+      .tg-help { font-size: 14px; }
+      .tg-board { border-radius: 18px; }
+      .tg-tool { font-size: 15px; padding: 6px 14px; min-height: 46px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .tg-piece.is-glide { transition: none; }
+      .tg-piece__shape { animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+
+  <script src="../../js/settings.js"></script>
+  <script src="../../js/games-data.js"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    var S = window.PlaySettings;
+    var GAME_ID = "tangram";
+    var SVGNS = "http://www.w3.org/2000/svg";
+
+    /* ======================================================================
+       THE 7 TANGRAM PIECES
+         L = big triangle (×2), M = middle triangle, S = small triangle (×2),
+         Q = square, P = parallelogram.
+       Figures live on one of two grids (both use whole numbers only):
+         "A" — the square piece stands on its corner (◇)
+         "B" — the square piece lies flat (□); grid is turned 45° and √2 bigger
+       ====================================================================== */
+
+    var BASE = {
+      A: { L: [[0,0],[4,0],[2,2]], M: [[0,0],[2,0],[0,2]], S: [[0,0],[2,0],[1,1]],
+           Q: [[1,0],[2,1],[1,2],[0,1]], P: [[0,0],[2,0],[3,1],[1,1]] },
+      B: { L: [[0,0],[2,0],[0,2]], M: [[0,0],[2,0],[1,1]], S: [[0,0],[1,0],[0,1]],
+           Q: [[0,0],[1,0],[1,1],[0,1]], P: [[0,0],[1,0],[2,1],[1,1]] }
+    };
+    /** Size of one grid step on screen (SVG units). B steps are √2 bigger, so pieces look the same. */
+    var UNIT = { A: 10, B: 10 * Math.SQRT2 };
+    /** Board width in grid steps — the same real width for both grids. */
+    var BOARD_W = { A: 16, B: 11 };
+
+    var PIECE_SET = [
+      { id: "L1", type: "L", color: "#FF7A30" },
+      { id: "L2", type: "L", color: "#F0506E" },
+      { id: "M",  type: "M", color: "#7C5CFF" },
+      { id: "Q",  type: "Q", color: "#FFC531" },
+      { id: "P",  type: "P", color: "#1FAA6B" },
+      { id: "S1", type: "S", color: "#169BDB" },
+      { id: "S2", type: "S", color: "#EC4C8A" }
+    ];
+
+    /* ======================================================================
+       FIGURES — each one is a real solution with all 7 pieces (checked by a script).
+       Pieces: [type, corner points]. The game only needs the outline, so other
+       correct ways of filling the shadow count too.
+       ====================================================================== */
+
+    var FIGURES = [
+      { id: "house",  icon: "🏠", name: { en: "House",  hy: "Տնակ",  ru: "Домик" },
+        lattice: "B", pieces: [["L", [[2,2],[0,2],[2,0]]], ["L", [[2,2],[2,0],[4,2]]], ["M", [[1,2],[3,2],[2,3]]], ["Q", [[1,3],[2,3],[2,4],[1,4]]], ["P", [[3,2],[3,3],[2,4],[2,3]]], ["S", [[1,3],[1,2],[2,3]]], ["S", [[3,4],[2,4],[3,3]]]] },
+      { id: "rocket", icon: "🚀", name: { en: "Rocket", hy: "Հրթիռ", ru: "Ракета" },
+        lattice: "B", pieces: [["L", [[2,4],[0,4],[2,2]]], ["L", [[1,1],[3,1],[1,3]]], ["M", [[3,1],[1,1],[2,0]]], ["Q", [[2,2],[3,2],[3,3],[2,3]]], ["P", [[2,3],[3,3],[4,4],[3,4]]], ["S", [[3,2],[2,2],[3,1]]], ["S", [[2,4],[2,3],[3,4]]]] },
+      { id: "boat",   icon: "⛵", name: { en: "Sailboat", hy: "Առագաստանավ", ru: "Парусник" },
+        lattice: "B", pieces: [["L", [[2,2],[0,2],[2,0]]], ["L", [[2,2],[2,0],[4,2]]], ["M", [[0,2],[2,2],[1,3]]], ["Q", [[2,2],[3,2],[3,3],[2,3]]], ["P", [[5,2],[4,2],[3,3],[4,3]]], ["S", [[2,3],[1,3],[2,2]]], ["S", [[3,2],[4,2],[3,3]]]] },
+      { id: "fish",   icon: "🐟", name: { en: "Fish", hy: "Ձուկ", ru: "Рыбка" },
+        lattice: "A", pieces: [["L", [[0,2],[2,0],[4,2]]], ["L", [[0,2],[4,2],[2,4]]], ["M", [[4,2],[6,0],[6,2]]], ["Q", [[3,3],[4,4],[3,5],[2,4]]], ["P", [[2,0],[4,0],[5,1],[3,1]]], ["S", [[4,2],[6,2],[5,3]]], ["S", [[6,2],[6,4],[5,3]]]] },
+      { id: "cat",    icon: "🐱", name: { en: "Cat", hy: "Կատու", ru: "Кошка" },
+        lattice: "A", pieces: [["L", [[2,3],[2,7],[4,5]]], ["L", [[2,7],[6,7],[4,5]]], ["M", [[2,5],[2,7],[0,7]]], ["Q", [[2,1],[3,2],[2,3],[1,2]]], ["P", [[7,4],[7,6],[6,7],[6,5]]], ["S", [[1,0],[1,2],[2,1]]], ["S", [[3,0],[3,2],[2,1]]]] },
+      { id: "rabbit", icon: "🐰", name: { en: "Bunny", hy: "Նապաստակ", ru: "Зайчик" },
+        lattice: "A", pieces: [["L", [[0,8],[4,8],[2,6]]], ["L", [[4,4],[4,8],[2,6]]], ["M", [[4,8],[6,8],[4,6]]], ["Q", [[3,3],[4,2],[5,3],[4,4]]], ["P", [[4,0],[4,2],[5,3],[5,1]]], ["S", [[0,6],[0,8],[1,7]]], ["S", [[3,1],[3,3],[4,2]]]] },
+      { id: "swan",   icon: "🦢", name: { en: "Swan", hy: "Կարապ", ru: "Лебедь" },
+        lattice: "A", pieces: [["L", [[1,4],[5,4],[3,6]]], ["L", [[5,0],[5,4],[3,2]]], ["M", [[1,4],[3,4],[3,2]]], ["Q", [[0,1],[1,0],[2,1],[1,2]]], ["P", [[2,1],[2,3],[1,4],[1,2]]], ["S", [[3,2],[3,4],[4,3]]], ["S", [[3,4],[5,4],[4,3]]]] },
+      { id: "rectangle", icon: "▬", name: { en: "Rectangle", hy: "Ուղղանկյուն", ru: "Прямоугольник" },
+        lattice: "B", pieces: [["L", [[0,0],[2,0],[0,2]]], ["L", [[2,2],[0,2],[2,0]]], ["M", [[2,0],[4,0],[3,1]]], ["Q", [[2,1],[3,1],[3,2],[2,2]]], ["P", [[4,0],[4,1],[3,2],[3,1]]], ["S", [[2,1],[2,0],[3,1]]], ["S", [[4,2],[3,2],[4,1]]]] },
+      { id: "triangle", icon: "🔺", name: { en: "Triangle", hy: "Եռանկյունի", ru: "Треугольник" },
+        lattice: "A", pieces: [["L", [[4,4],[0,4],[2,2]]], ["L", [[4,0],[4,4],[2,2]]], ["M", [[4,4],[4,2],[6,4]]], ["Q", [[5,1],[6,2],[5,3],[4,2]]], ["P", [[5,3],[7,3],[8,4],[6,4]]], ["S", [[4,2],[4,0],[5,1]]], ["S", [[7,3],[5,3],[6,2]]]] },
+      { id: "square", icon: "⬛", name: { en: "Square", hy: "Քառակուսի", ru: "Квадрат" },
+        lattice: "A", pieces: [["L", [[0,0],[4,0],[2,2]]], ["L", [[0,4],[0,0],[2,2]]], ["M", [[4,4],[2,4],[4,2]]], ["Q", [[2,2],[3,3],[2,4],[1,3]]], ["P", [[4,0],[4,2],[3,3],[3,1]]], ["S", [[2,4],[0,4],[1,3]]], ["S", [[3,1],[3,3],[2,2]]]] }
+    ];
+
+    var UI = {
+      allGames: { en: "All games", hy: "Բոլոր խաղերը", ru: "Все игры" },
+      settings: { en: "Settings", hy: "Կարգավորումներ", ru: "Настройки" },
+      language: { en: "Language", hy: "Լեզու", ru: "Язык" },
+      level:    { en: "Level", hy: "Մակարդակ", ru: "Уровень" },
+      restartNote: {
+        en: "Changing the level starts the figure from the beginning.",
+        hy: "Մակարդակը փոխելիս պատկերը կսկսվի սկզբից։",
+        ru: "При смене уровня фигура начнётся сначала."
+      },
+      build: { en: "Build the {name}!", hy: "Հավաքի՛ր՝ {name}", ru: "Собери: {name}" },
+      helpEasy: {
+        en: "The lines show where each piece goes — the pieces are already turned the right way.",
+        hy: "Գծերը ցույց են տալիս, թե որտեղ է ամեն մասը։ Մասերն արդեն ճիշտ են դարձված։",
+        ru: "Линии подсказывают, где какая деталь, — детали уже повёрнуты правильно."
+      },
+      helpMedium: {
+        en: "The lines show where each piece goes. Tap a piece to turn it.",
+        hy: "Գծերը ցույց են տալիս, թե որտեղ է ամեն մասը։ Սեղմի՛ր մասին, որ այն պտտվի։",
+        ru: "Линии подсказывают, где какая деталь. Нажми на деталь, чтобы повернуть её."
+      },
+      helpHard: {
+        en: "Only the shadow — find where every piece fits! Tap a piece to turn it.",
+        hy: "Միայն ստվերն է․ գտի՛ր, թե որտեղ է տեղավորվում ամեն մասը։ Սեղմի՛ր մասին, որ պտտվի։",
+        ru: "Только тень — найди, куда встаёт каждая деталь! Нажми на деталь, чтобы повернуть её."
+      },
+      howTo: {
+        en: "Drag the pieces into the shadow.",
+        hy: "Քաշի՛ր մասերը ստվերի մեջ։",
+        ru: "Перетаскивай детали в тень."
+      },
+      turn:    { en: "⟳ Turn", hy: "⟳ Պտտել", ru: "⟳ Повернуть" },
+      flip:    { en: "⇋ Flip", hy: "⇋ Շրջել", ru: "⇋ Отразить" },
+      hint:    { en: "💡 Hint", hy: "💡 Հուշում", ru: "💡 Подсказка" },
+      restart: { en: "🔄 Start over", hy: "🔄 Սկսել նորից", ru: "🔄 Начать заново" },
+      board:   {
+        en: "Tangram board. Pick a piece with Tab, move it with the arrow keys, R turns, F flips.",
+        hy: "Տանգրամի դաշտ։ Ընտրի՛ր մասը Tab-ով, տեղափոխի՛ր սլաքներով, R՝ պտտել, F՝ շրջել։",
+        ru: "Поле танграма. Выбери деталь клавишей Tab, двигай стрелками, R — повернуть, F — отразить."
+      },
+      pickFirst: { en: "Tap a piece first.", hy: "Նախ սեղմի՛ր որևէ մասի։", ru: "Сначала нажми на деталь." },
+      fits: {
+        en: ["It fits! 👍", "Good spot! 👍", "Just right! 👍", "Nice! 👍"],
+        hy: ["Տեղավորվեց։ 👍", "Ճիշտ տեղն է։ 👍", "Հենց այդպես։ 👍", "Ապրե՛ս։ 👍"],
+        ru: ["Подходит! 👍", "Хорошее место! 👍", "То что надо! 👍", "Отлично! 👍"]
+      },
+      sticksOut: {
+        en: "It sticks out of the shadow — try turning it.",
+        hy: "Այն դուրս է մնում ստվերից․ փորձի՛ր պտտել։",
+        ru: "Деталь торчит из тени — попробуй её повернуть."
+      },
+      overlap: {
+        en: "Pieces can't lie on top of each other.",
+        hy: "Մասերը չեն կարող իրար վրա լինել։",
+        ru: "Детали не могут лежать друг на друге."
+      },
+      flipTip: {
+        en: "Tip: the parallelogram sometimes needs ⇋ Flip.",
+        hy: "Խորհուրդ․ զուգահեռագիծը երբեմն պետք է ⇋ շրջել։",
+        ru: "Совет: параллелограмм иногда нужно ⇋ отразить."
+      },
+      hintText: { en: "Look — this piece goes here!", hy: "Նայի՛ր, այս մասը այստեղ է։", ru: "Смотри — эта деталь здесь!" },
+      winTitle: { en: "You built the {name}! 🎉", hy: "Դու հավաքեցիր՝ {name} 🎉", ru: "Ты собрал: {name} 🎉" },
+      winText: {
+        en: "All 7 pieces are in place.",
+        hy: "Բոլոր 7 մասերը իրենց տեղում են։",
+        ru: "Все 7 деталей на своих местах."
+      },
+      hintsUsed: { en: "Hints used: {n}", hy: "Օգտագործված հուշումներ՝ {n}", ru: "Подсказок: {n}" },
+      noHints: { en: "No hints — brilliant! 🏆", hy: "Առանց հուշումների․ հիանալի է։ 🏆", ru: "Без подсказок — блестяще! 🏆" },
+      playAgain: { en: "🔄 Build again", hy: "🔄 Հավաքել նորից", ru: "🔄 Собрать ещё раз" },
+      nextFig: { en: "Next figure →", hy: "Հաջորդ պատկերը →", ru: "Следующая фигура →" },
+      allDone: {
+        en: "You built every figure on this level! Try a harder level ⚙️",
+        hy: "Դու հավաքեցիր այս մակարդակի բոլոր պատկերները։ Փորձի՛ր ավելի բարդ մակարդակ ⚙️",
+        ru: "Ты собрал все фигуры этого уровня! Попробуй уровень посложнее ⚙️"
+      },
+      pieceName: {
+        L: { en: "Big triangle", hy: "Մեծ եռանկյունի", ru: "Большой треугольник" },
+        M: { en: "Middle triangle", hy: "Միջին եռանկյունի", ru: "Средний треугольник" },
+        S: { en: "Small triangle", hy: "Փոքր եռանկյունի", ru: "Маленький треугольник" },
+        Q: { en: "Square", hy: "Քառակուսի", ru: "Квадрат" },
+        P: { en: "Parallelogram", hy: "Զուգահեռագիծ", ru: "Параллелограмм" }
+      }
+    };
+    function t(key) { return S.tr(UI[key]); }
+    function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
+    function esc(s) {
+      return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+    function shuffle(a) {
+      for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var x = a[i]; a[i] = a[j]; a[j] = x; }
+      return a;
+    }
+
+    /* ======================================================================
+       Geometry (whole-number grid)
+       ====================================================================== */
+
+    /** Piece corners for a turn (0–3, clockwise 90° steps) and flip, moved so the top-left is 0,0. */
+    function orient(lat, type, rot, flip) {
+      var pts = BASE[lat][type].map(function (p) { return [flip ? -p[0] : p[0], p[1]]; });
+      for (var r = 0; r < rot; r++) pts = pts.map(function (p) { return [-p[1], p[0]]; });
+      return normalize(pts);
+    }
+    function normalize(pts) {
+      var mx = Math.min.apply(null, pts.map(function (p) { return p[0]; }));
+      var my = Math.min.apply(null, pts.map(function (p) { return p[1]; }));
+      return pts.map(function (p) { return [p[0] - mx, p[1] - my]; });
+    }
+    function shapeKey(pts) {
+      return normalize(pts).map(function (p) { return p[0] + "," + p[1]; }).sort().join(" ");
+    }
+    function size(pts) {
+      return {
+        w: Math.max.apply(null, pts.map(function (p) { return p[0]; })),
+        h: Math.max.apply(null, pts.map(function (p) { return p[1]; }))
+      };
+    }
+    /** Which turn/flip gives this shape. */
+    function findOrient(lat, type, pts) {
+      var key = shapeKey(pts);
+      for (var f = 0; f < 2; f++) {
+        for (var r = 0; r < 4; r++) if (shapeKey(orient(lat, type, r, f)) === key) return { rot: r, flip: f };
+      }
+      return { rot: 0, flip: 0 };
+    }
+
+    function inside(pt, poly) {
+      var x = pt[0], y = pt[1], c = false;
+      for (var i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        var xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
+        if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) c = !c;
+      }
+      return c;
+    }
+    /*
+     * Every piece edge runs along a grid line or a grid diagonal, so each grid
+     * square splits into 4 little triangles (top, right, bottom, left) that are
+     * either fully covered or not. Comparing these sets tells us whether pieces
+     * fill the shadow exactly — any correct arrangement wins, not only ours.
+     */
+    var QUARTER = [[.5, .2], [.8, .5], [.5, .8], [.2, .5]];
+    function quarters(poly) {
+      var xs = poly.map(function (p) { return p[0]; }), ys = poly.map(function (p) { return p[1]; });
+      var x0 = Math.floor(Math.min.apply(null, xs)), x1 = Math.ceil(Math.max.apply(null, xs));
+      var y0 = Math.floor(Math.min.apply(null, ys)), y1 = Math.ceil(Math.max.apply(null, ys));
+      var out = [];
+      for (var i = x0; i < x1; i++) for (var j = y0; j < y1; j++) for (var k = 0; k < 4; k++) {
+        if (inside([i + QUARTER[k][0], j + QUARTER[k][1]], poly)) out.push(i + ":" + j + ":" + k);
+      }
+      return out;
+    }
+
+    /* ======================================================================
+       Remember finished figures (per level)
+       ====================================================================== */
+
+    var DONE_KEY = "playlearn-tangram-done";
+    var doneMemory = {};
+    function loadDone() {
+      try { var v = JSON.parse(window.localStorage.getItem(DONE_KEY) || "{}"); return v && typeof v === "object" ? v : {}; }
+      catch (e) { return doneMemory; }
+    }
+    function isDone(level, id) { var d = loadDone()[level] || []; return d.indexOf(id) !== -1; }
+    function markDone(level, id) {
+      var all = loadDone();
+      var d = all[level] || [];
+      if (d.indexOf(id) === -1) d.push(id);
+      all[level] = d;
+      doneMemory = all;
+      try { window.localStorage.setItem(DONE_KEY, JSON.stringify(all)); } catch (e) { /* private mode */ }
+    }
+
+    /* ======================================================================
+       Game
+       ====================================================================== */
+
+    var catalog = window.LEARNING_GAMES || { themes: [], games: [] };
+    var game = catalog.games.filter(function (g) { return g.id === GAME_ID; })[0] ||
+      { title: { en: "Tangram" }, icon: "🔷", theme: "logic" };
+    var theme = catalog.themes.filter(function (th) { return th.id === game.theme; })[0] ||
+      { color: "#12A594", soft: "#E1F6F3" };
+    var home = "../../index.html" + (game.theme ? "#" + game.theme : "");
+    var root = document.getElementById("game");
+
+    document.documentElement.style.setProperty("--c", theme.color);
+    document.documentElement.style.setProperty("--soft", theme.soft);
+
+    var lang, level, F, state, els = {};
+    var figIndex = 0;
+
+    function seg(attr, items, current) {
+      return '<div class="g-seg" role="group">' + items.map(function (it) {
+        var on = String(it.value) === String(current);
+        return '<button type="button" class="g-seg__btn' + (on ? " is-active" : "") + '" data-' + attr + '="' + it.value + '"' +
+          ' aria-pressed="' + on + '"' + (it.lang ? ' lang="' + it.lang + '"' : "") + ">" + it.label + "</button>";
+      }).join("") + "</div>";
+    }
+
+    /* ----- Page shell ----- */
+
+    function build(keepState) {
+      lang = S.get("lang");
+      level = S.getLevel(GAME_ID);
+      var levelInfo = S.LEVELS.filter(function (l) { return l.id === level; })[0];
+      var title = S.tr(game.title);
+
+      document.documentElement.lang = lang;
+      document.title = title + " · Play & Learn";
+
+      root.innerHTML =
+        '<header class="g-top">' +
+          '<a class="g-back" href="' + home + '">' +
+            '<span aria-hidden="true">←</span> <span class="g-back__label">' + esc(t("allGames")) + "</span></a>" +
+          '<div class="g-title"><span aria-hidden="true">' + game.icon + "</span> " + esc(title) + "</div>" +
+          '<div class="g-right">' +
+            '<button class="g-gear" type="button" id="g-gear" aria-expanded="false" aria-controls="g-panel" title="' + esc(t("settings")) + '">' +
+              '<span aria-hidden="true">⚙️</span><span class="g-gear__lang">' + esc(S.langInfo(lang).label) + "</span>" +
+              '<span class="g-gear__level">' + levelInfo.icon + '<span class="g-gear__lvname"> ' + esc(S.tr(levelInfo.name)) + "</span></span>" +
+            "</button>" +
+          "</div>" +
+          '<div class="g-panel" id="g-panel" hidden>' +
+            '<div class="g-panel__row"><span class="g-panel__label">🌐 ' + esc(t("language")) + "</span>" +
+              seg("lang", S.LANGS.map(function (l) { return { value: l.id, label: esc(l.label), lang: l.id }; }), lang) +
+            "</div>" +
+            '<div class="g-panel__row"><span class="g-panel__label">🧩 ' + esc(t("level")) + "</span>" +
+              seg("level", S.LEVELS.map(function (l) {
+                return { value: l.id, label: l.icon + "&nbsp;" + esc(S.tr(l.name)) };
+              }), level) +
+            "</div>" +
+            '<p class="g-panel__note">' + esc(t("restartNote")) + "</p>" +
+          "</div>" +
+        "</header>" +
+        '<main class="g-stage"><div class="g-card" id="g-card"></div></main>';
+
+      els.card = document.getElementById("g-card");
+      els.panel = document.getElementById("g-panel");
+      els.gear = document.getElementById("g-gear");
+
+      els.gear.addEventListener("click", function (e) { e.stopPropagation(); togglePanel(els.panel.hidden); });
+      els.panel.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var btn = e.target.closest("[data-lang],[data-level]");
+        if (!btn) return;
+        if (btn.hasAttribute("data-lang")) {
+          // Language only changes the words — keep the pieces where they are.
+          S.set("lang", btn.getAttribute("data-lang"));
+          build(true);
+          togglePanel(true);
+          return;
+        }
+        S.setLevel(GAME_ID, btn.getAttribute("data-level"));
+        state = null;
+        build();
+        togglePanel(true);
+      });
+
+      if (keepState && state && !state.won) render();
+      else if (keepState && state && state.won) renderWin();
+      else newGame();
+    }
+
+    function togglePanel(open) {
+      if (!els.panel) return;
+      els.panel.hidden = !open;
+      els.gear.setAttribute("aria-expanded", String(open));
+    }
+    document.addEventListener("click", function () { togglePanel(false); });
+
+    function chooseFigure(i) {
+      figIndex = (i + FIGURES.length) % FIGURES.length;
+      newGame();
+    }
+
+    /* ----- Setting up a figure ----- */
+
+    function setupFigure() {
+      F = FIGURES[figIndex];
+      var lat = F.lattice;
+      var W = BOARD_W[lat];
+      var slotsRaw = F.pieces.map(function (p) { return { type: p[0], pts: p[1] }; });
+      var fs = size([].concat.apply([], slotsRaw.map(function (s) { return s.pts; })));
+      var ox = Math.floor((W - fs.w) / 2), oy = 1;
+
+      var slots = slotsRaw.map(function (s) {
+        var pts = s.pts.map(function (p) { return [p[0] + ox, p[1] + oy]; });
+        var o = findOrient(lat, s.type, pts);
+        var mn = normalizeOffset(pts);
+        return { type: s.type, pts: pts, rot: o.rot, flip: o.flip, x: mn[0], y: mn[1], key: shapeKey(pts) + "@" + mn.join(",") };
+      });
+      var target = {};
+      slots.forEach(function (s) { quarters(s.pts).forEach(function (q) { target[q] = true; }); });
+
+      return { lat: lat, W: W, ox: ox, oy: oy, figH: fs.h, slots: slots, target: target, targetCount: Object.keys(target).length };
+    }
+    function normalizeOffset(pts) {
+      return [Math.min.apply(null, pts.map(function (p) { return p[0]; })), Math.min.apply(null, pts.map(function (p) { return p[1]; }))];
+    }
+
+    /** Lay the pieces out under the shadow, in rows (with a 1-step margin at both sides). */
+    function trayLayout(G, pieces) {
+      var x = 0, y = G.oy + G.figH + 1, rowH = 0;
+      var rows = [[]];
+      pieces.forEach(function (p) {
+        var sz = size(orient(G.lat, p.type, p.rot, p.flip));
+        if (x > 0 && x + sz.w > G.W - 2) { x = 0; y += rowH + 1; rowH = 0; rows.push([]); }
+        p.x = x; p.y = y;
+        rows[rows.length - 1].push({ p: p, w: sz.w });
+        x += sz.w + 1;
+        rowH = Math.max(rowH, sz.h);
+      });
+      // Centre each row.
+      rows.forEach(function (row) {
+        var used = row.reduce(function (s, r) { return s + r.w; }, 0) + row.length - 1;
+        var shift = Math.floor((G.W - used) / 2);
+        row.forEach(function (r) { r.p.x += shift; });
+      });
+      return y + rowH + 1;
+    }
+
+    function newGame() {
+      var G = setupFigure();
+      var pieces = PIECE_SET.map(function (def) {
+        return { id: def.id, type: def.type, color: def.color, rot: 0, flip: 0, x: 0, y: 0 };
+      });
+
+      if (level === "easy") {
+        // Each piece already faces the way one of its places needs.
+        var used = {};
+        pieces.forEach(function (p) {
+          for (var i = 0; i < G.slots.length; i++) {
+            if (G.slots[i].type === p.type && !used[i]) {
+              used[i] = true;
+              p.rot = G.slots[i].rot; p.flip = G.slots[i].flip;
+              break;
+            }
+          }
+        });
+      } else {
+        pieces.forEach(function (p) {
+          p.rot = Math.floor(Math.random() * 4);
+          p.flip = p.type === "P" ? Math.round(Math.random()) : 0;
+        });
+      }
+      shuffle(pieces);
+      G.H = trayLayout(G, pieces);
+      pieces.forEach(function (p) { p.home = { x: p.x, y: p.y, rot: p.rot, flip: p.flip }; });
+
+      state = {
+        figure: F.id,
+        G: G,
+        pieces: pieces,
+        selected: null,
+        hints: 0,
+        won: false,
+        message: "",
+        msgClass: "",
+        flipTipShown: false
+      };
+      render();
+    }
+
+    /* ----- Drawing ----- */
+
+    function svgEl(name, attrs) {
+      var el = document.createElementNS(SVGNS, name);
+      for (var k in attrs) el.setAttribute(k, attrs[k]);
+      return el;
+    }
+    function ptsAttr(pts, u) { return pts.map(function (p) { return (p[0] * u).toFixed(2) + "," + (p[1] * u).toFixed(2); }).join(" "); }
+
+    /** Small silhouette picture of a figure (for the picker and the win screen). */
+    function figureThumb(fig, cls) {
+      var all = [].concat.apply([], fig.pieces.map(function (p) { return p[1]; }));
+      var sz = size(all);
+      var u = UNIT[fig.lattice];
+      var pad = 2;
+      var polys = fig.pieces.map(function (p) {
+        return '<polygon points="' + ptsAttr(p[1], u) + '" stroke="currentColor" stroke-width="0.6" stroke-linejoin="round"/>';
+      }).join("");
+      return '<svg class="' + (cls || "") + '" viewBox="' + (-pad) + " " + (-pad) + " " + (sz.w * u + pad * 2) + " " + (sz.h * u + pad * 2) +
+        '" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' + polys + "</svg>";
+    }
+
+    function helpKey() { return level === "easy" ? "helpEasy" : level === "medium" ? "helpMedium" : "helpHard"; }
+
+    function render() {
+      var G = state.G;
+      var name = S.tr(F.name);
+
+      var figs = FIGURES.map(function (fig, i) {
+        var on = i === figIndex;
+        return '<button type="button" class="tg-fig' + (on ? " is-active" : "") + '" data-fig="' + i + '" aria-pressed="' + on + '"' +
+          ' aria-label="' + esc(S.tr(fig.name)) + '">' +
+          figureThumb(fig) +
+          '<span class="tg-fig__name">' + esc(S.tr(fig.name)) + "</span>" +
+          (isDone(level, fig.id) ? '<span class="tg-fig__done" aria-hidden="true">✓</span>' : "") +
+          "</button>";
+      }).join("");
+
+      els.card.innerHTML =
+        '<div class="tg-figs" id="tg-figs">' + figs + "</div>" +
+        '<div class="g-prompt"><h1 class="g-question">' + esc(t("build").replace("{name}", name)) + " " + F.icon + "</h1></div>" +
+        '<p class="tg-help">' + esc(t(helpKey())) + "</p>" +
+        '<div id="tg-board-wrap"></div>' +
+        '<p class="g-feedback" id="tg-feedback" aria-live="polite">&nbsp;</p>' +
+        '<div class="tg-tools">' +
+          '<button type="button" class="tg-tool" id="tg-turn">' + esc(t("turn")) + "</button>" +
+          '<button type="button" class="tg-tool" id="tg-flip">' + esc(t("flip")) + "</button>" +
+          '<button type="button" class="tg-tool" id="tg-hint">' + esc(t("hint")) + "</button>" +
+          '<button type="button" class="tg-tool" id="tg-restart">' + esc(t("restart")) + "</button>" +
+        "</div>";
+
+      els.feedback = document.getElementById("tg-feedback");
+      els.turn = document.getElementById("tg-turn");
+      els.flip = document.getElementById("tg-flip");
+
+      document.getElementById("tg-figs").addEventListener("click", function (e) {
+        var b = e.target.closest("[data-fig]");
+        if (b) chooseFigure(Number(b.getAttribute("data-fig")));
+      });
+      els.turn.addEventListener("click", function () { if (state.selected) turn(state.selected); else say("pickFirst", "is-timeup"); });
+      els.flip.addEventListener("click", function () { if (state.selected) flip(state.selected); else say("pickFirst", "is-timeup"); });
+      document.getElementById("tg-hint").addEventListener("click", hint);
+      document.getElementById("tg-restart").addEventListener("click", newGame);
+
+      drawBoard();
+      say(state.message || "", state.msgClass);
+    }
+
+    function drawBoard() {
+      var G = state.G, u = UNIT[G.lat];
+      var svg = svgEl("svg", {
+        "class": "tg-board",
+        viewBox: "0 0 " + (G.W * u).toFixed(2) + " " + (G.H * u).toFixed(2),
+        role: "application",
+        "aria-label": t("board")
+      });
+
+      var shadow = svgEl("g", { "class": "tg-shadow-wrap" });
+      G.slots.forEach(function (s) {
+        shadow.appendChild(svgEl("polygon", { "class": "tg-shadow", points: ptsAttr(s.pts, u), stroke: "var(--shadow-fill)", "stroke-width": "0.8", "stroke-linejoin": "round" }));
+      });
+      if (level !== "hard") {
+        G.slots.forEach(function (s) { shadow.appendChild(svgEl("polygon", { "class": "tg-slot", points: ptsAttr(s.pts, u) })); });
+      }
+      svg.appendChild(shadow);
+
+      var layer = svgEl("g", {});
+      state.pieces.forEach(function (p) {
+        var g = svgEl("g", { "class": "tg-piece", tabindex: "0", "data-id": p.id, role: "button", "aria-label": S.tr(UI.pieceName[p.type]) });
+        g.appendChild(svgEl("polygon", { "class": "tg-piece__shape", fill: p.color }));
+        layer.appendChild(g);
+        p.el = g;
+        paintPiece(p);
+      });
+      svg.appendChild(layer);
+
+      var wrap = document.getElementById("tg-board-wrap");
+      wrap.innerHTML = "";
+      wrap.appendChild(svg);
+      els.svg = svg;
+      els.shadow = shadow;
+      els.layer = layer;
+
+      svg.addEventListener("pointerdown", onDown);
+      svg.addEventListener("keydown", onKey);
+      svg.addEventListener("focusin", function (e) {
+        var g = e.target.closest && e.target.closest(".tg-piece");
+        if (g) select(pieceById(g.getAttribute("data-id")));
+      });
+      markInPlace();
+      updateTools();
+    }
+
+    function paintPiece(p, dx, dy) {
+      var u = UNIT[state.G.lat];
+      var shape = p.el.firstChild;
+      shape.setAttribute("points", ptsAttr(orient(state.G.lat, p.type, p.rot, p.flip), u));
+      var x = (p.x + (dx || 0)) * u, y = (p.y + (dy || 0)) * u;
+      p.el.style.transform = "translate(" + x.toFixed(2) + "px," + y.toFixed(2) + "px)";
+      p.el.classList.toggle("is-selected", state.selected === p);
+    }
+
+    function pieceById(id) { return state.pieces.filter(function (p) { return p.id === id; })[0]; }
+    function piecePoly(p) {
+      return orient(state.G.lat, p.type, p.rot, p.flip).map(function (q) { return [q[0] + p.x, q[1] + p.y]; });
+    }
+
+    function select(p) {
+      var prev = state.selected;
+      state.selected = p;
+      if (prev && prev.el) paintPiece(prev);
+      if (p) { paintPiece(p); els.layer.appendChild(p.el); }
+      updateTools();
+    }
+    function updateTools() {
+      if (!els.turn) return;
+      els.turn.classList.toggle("tg-tool--primary", !!state.selected);
+      els.flip.classList.toggle("tg-tool--primary", !!state.selected && state.selected.type === "P");
+    }
+
+    function say(key, cls) {
+      state.message = key && UI[key] ? t(key) : key || "";
+      state.msgClass = cls || "";
+      if (!els.feedback) return;
+      els.feedback.className = "g-feedback" + (state.msgClass ? " " + state.msgClass : "");
+      els.feedback.textContent = state.message || (state.pieces.every(function (p) { return !p.inPlace; }) ? t("howTo") : " ");
+    }
+
+    /* ----- Placement checks ----- */
+
+    /** Marks pieces lying fully in the shadow without overlapping; returns true when the figure is complete. */
+    function markInPlace() {
+      var G = state.G, owner = {}, covered = 0, ok = true;
+      state.pieces.forEach(function (p) {
+        p.q = quarters(piecePoly(p));
+        p.inShadow = p.q.length > 0 && p.q.every(function (q) { return G.target[q]; });
+        p.overlaps = false;
+      });
+      state.pieces.forEach(function (p) {
+        p.q.forEach(function (q) {
+          if (owner[q] && owner[q] !== p) { p.overlaps = true; owner[q].overlaps = true; } else owner[q] = p;
+        });
+      });
+      state.pieces.forEach(function (p) {
+        p.inPlace = p.inShadow && !p.overlaps;
+        if (p.el) p.el.classList.toggle("is-in", p.inPlace);
+        if (p.inPlace) covered += p.q.length; else ok = false;
+      });
+      return ok && covered === G.targetCount;
+    }
+
+    /** Pull a piece onto an exact place in the shadow when it was dropped close to one. */
+    function magnet(p) {
+      var G = state.G, reach = level === "easy" ? 1.6 : 1.1, best = null, bestD = Infinity;
+      var key = shapeKey(orient(G.lat, p.type, p.rot, p.flip));
+      G.slots.forEach(function (s) {
+        if (s.type !== p.type || shapeKey(s.pts) !== key) return;
+        var taken = state.pieces.some(function (o) { return o !== p && o.x === s.x && o.y === s.y && shapeKey(piecePoly(o)) === key && o.type === s.type; });
+        if (taken) return;
+        var d = Math.max(Math.abs(s.x - p.x), Math.abs(s.y - p.y));
+        if (d <= reach && d < bestD) { best = s; bestD = d; }
+      });
+      if (best) { p.x = best.x; p.y = best.y; }
+    }
+
+    function clampToBoard(p) {
+      var sz = size(orient(state.G.lat, p.type, p.rot, p.flip));
+      p.x = Math.max(0, Math.min(state.G.W - sz.w, p.x));
+      p.y = Math.max(0, Math.min(state.G.H - sz.h, p.y));
+    }
+
+    function afterMove(p, quiet) {
+      var wasIn = p.inPlace;
+      var done = markInPlace();
+      paintPiece(p);
+      if (done) { win(); return; }
+      if (quiet) return;
+      if (p.inPlace && !wasIn) {
+        say(pick(t("fits")), "is-right");
+        pop(p, "is-pop");
+      } else if (p.overlaps && touchesShadow(p)) {
+        say("overlap", "is-timeup");
+      } else if (!p.inShadow && touchesShadow(p) && p.q.some(function (q) { return state.G.target[q]; })) {
+        if (p.type === "P" && !state.flipTipShown && level !== "easy") { state.flipTipShown = true; say(t("sticksOut") + " " + t("flipTip"), "is-timeup"); }
+        else say("sticksOut", "is-timeup");
+      } else if (!p.inPlace) {
+        say("", "");
+      }
+    }
+    function touchesShadow(p) { return p.q.some(function (q) { return state.G.target[q]; }); }
+
+    function pop(p, cls) {
+      p.el.classList.remove("is-pop", "is-spin", "is-flip", "is-hint");
+      void p.el.getBoundingClientRect();
+      p.el.classList.add(cls);
+    }
+
+    /* ----- Actions ----- */
+
+    function turn(p) {
+      if (state.won) return;
+      var before = size(orient(state.G.lat, p.type, p.rot, p.flip));
+      var cx = p.x + before.w / 2, cy = p.y + before.h / 2;
+      p.rot = (p.rot + 1) % 4;
+      var after = size(orient(state.G.lat, p.type, p.rot, p.flip));
+      p.x = Math.round(cx - after.w / 2);
+      p.y = Math.round(cy - after.h / 2);
+      clampToBoard(p);
+      select(p);
+      pop(p, "is-spin");
+      magnet(p);
+      afterMove(p);
+    }
+
+    function flip(p) {
+      if (state.won) return;
+      // Mirror left-to-right: flipping turns a clockwise step into an anticlockwise one.
+      p.flip = 1 - p.flip;
+      p.rot = (4 - p.rot) % 4;
+      clampToBoard(p);
+      select(p);
+      pop(p, "is-flip");
+      magnet(p);
+      afterMove(p);
+    }
+
+    var drag = null;
+    function svgPoint(e) {
+      var pt = els.svg.createSVGPoint();
+      pt.x = e.clientX; pt.y = e.clientY;
+      return pt.matrixTransform(els.svg.getScreenCTM().inverse());
+    }
+
+    function onDown(e) {
+      if (state.won) return;
+      var g = e.target.closest(".tg-piece");
+      if (!g) { select(null); return; }
+      if (e.button != null && e.button !== 0) return;
+      e.preventDefault();
+      var p = pieceById(g.getAttribute("data-id"));
+      select(p);
+      var pt = svgPoint(e);
+      drag = { p: p, sx: pt.x, sy: pt.y, cx: e.clientX, cy: e.clientY, moved: false, id: e.pointerId };
+      try { els.svg.setPointerCapture(e.pointerId); } catch (err) { /* old browser */ }
+      g.classList.remove("is-glide");
+      els.svg.addEventListener("pointermove", onMove);
+      els.svg.addEventListener("pointerup", onUp);
+      els.svg.addEventListener("pointercancel", onUp);
+    }
+
+    function onMove(e) {
+      if (!drag || e.pointerId !== drag.id) return;
+      if (!drag.moved && Math.abs(e.clientX - drag.cx) + Math.abs(e.clientY - drag.cy) < 6) return;
+      if (!drag.moved) { drag.moved = true; drag.p.el.classList.add("is-drag"); }
+      var u = UNIT[state.G.lat];
+      var pt = svgPoint(e);
+      var p = drag.p;
+      var sz = size(orient(state.G.lat, p.type, p.rot, p.flip));
+      var dx = (pt.x - drag.sx) / u, dy = (pt.y - drag.sy) / u;
+      dx = Math.max(-p.x, Math.min(state.G.W - sz.w - p.x, dx));
+      dy = Math.max(-p.y, Math.min(state.G.H - sz.h - p.y, dy));
+      drag.dx = dx; drag.dy = dy;
+      paintPiece(p, dx, dy);
+    }
+
+    function onUp(e) {
+      if (!drag || e.pointerId !== drag.id) return;
+      var d = drag;
+      drag = null;
+      els.svg.removeEventListener("pointermove", onMove);
+      els.svg.removeEventListener("pointerup", onUp);
+      els.svg.removeEventListener("pointercancel", onUp);
+      d.p.el.classList.remove("is-drag");
+      if (!d.moved) { turn(d.p); return; }       // a tap turns the piece
+      d.p.x = Math.round(d.p.x + (d.dx || 0));
+      d.p.y = Math.round(d.p.y + (d.dy || 0));
+      clampToBoard(d.p);
+      magnet(d.p);
+      afterMove(d.p);
+    }
+
+    function onKey(e) {
+      var g = e.target.closest && e.target.closest(".tg-piece");
+      if (!g || state.won) return;
+      var p = pieceById(g.getAttribute("data-id"));
+      var moves = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+      if (moves[e.key]) {
+        e.preventDefault();
+        p.x += moves[e.key][0]; p.y += moves[e.key][1];
+        clampToBoard(p);
+        afterMove(p);
+      } else if (e.key === "r" || e.key === "R" || e.key === "Enter" || e.key === " ") {
+        e.preventDefault(); turn(p); g.focus();
+      } else if (e.key === "f" || e.key === "F") {
+        e.preventDefault(); flip(p); g.focus();
+      }
+    }
+
+    function sendHome(p) {
+      p.x = p.home.x; p.y = p.home.y; p.rot = p.home.rot; p.flip = p.home.flip;
+    }
+
+    function hint() {
+      if (state.won) return;
+      var G = state.G;
+      // Places that no piece fills exactly yet, biggest first.
+      function exact(p, s) { return p.type === s.type && p.x === s.x && p.y === s.y && shapeKey(piecePoly(p)) === shapeKey(s.pts); }
+      var slot = G.slots.filter(function (s) { return !state.pieces.some(function (p) { return exact(p, s); }); })[0];
+      if (!slot) return;
+      var free = state.pieces.filter(function (p) { return p.type === slot.type && !G.slots.some(function (s) { return exact(p, s); }); });
+      var p = free.filter(function (x) { return !x.inPlace; })[0] || free[0];
+      if (!p) return;
+
+      // Anything already lying on that place goes back to the tray.
+      var slotQ = {};
+      quarters(slot.pts).forEach(function (q) { slotQ[q] = true; });
+      state.pieces.forEach(function (o) {
+        if (o === p) return;
+        if (quarters(piecePoly(o)).some(function (q) { return slotQ[q]; })) {
+          sendHome(o);
+          o.el.classList.add("is-glide");
+          paintPiece(o);
+        }
+      });
+
+      p.rot = slot.rot; p.flip = slot.flip; p.x = slot.x; p.y = slot.y;
+      state.hints++;
+      select(p);
+      p.el.classList.add("is-glide");
+      pop(p, "is-hint");
+      setTimeout(function () { state.pieces.forEach(function (o) { if (o.el) o.el.classList.remove("is-glide"); }); }, 600);
+      say("hintText", "");
+      afterMove(p, true);
+    }
+
+    /* ----- Win ----- */
+
+    function win() {
+      state.won = true;
+      select(null);
+      markDone(level, F.id);
+      say(pick(t("fits")), "is-right");
+      els.shadow.classList.add("is-won");
+      state.pieces.forEach(function (p, i) {
+        p.el.querySelector(".tg-piece__shape").style.animationDelay = (i * 0.07) + "s";
+        p.el.classList.add("is-won");
+      });
+      setTimeout(renderWin, 1300);
+    }
+
+    function nextUndone() {
+      for (var k = 1; k <= FIGURES.length; k++) {
+        var i = (figIndex + k) % FIGURES.length;
+        if (!isDone(level, FIGURES[i].id)) return i;
+      }
+      return -1;
+    }
+
+    function renderWin() {
+      var stars = state.hints === 0 ? 3 : state.hints <= 2 ? 2 : 1;
+      var name = S.tr(F.name);
+      var starHtml = "";
+      for (var i = 0; i < 3; i++) {
+        starHtml += '<span class="g-star' + (i < stars ? " is-on" : "") + '" style="animation-delay:' + (i * 0.15) + 's">★</span>';
+      }
+      var next = nextUndone();
+      var picture = '<svg class="tg-end__pic" viewBox="0 0 10 10" aria-hidden="true"></svg>';
+      els.card.innerHTML =
+        '<div class="g-end">' +
+          '<div class="g-stars" aria-label="' + stars + ' / 3">' + starHtml + "</div>" +
+          '<div id="tg-pic">' + picture + "</div>" +
+          '<h2 class="g-end__title">' + esc(t("winTitle").replace("{name}", name)) + "</h2>" +
+          '<p class="g-end__score">' + esc(t("winText")) +
+            (state.hints ? " " + esc(t("hintsUsed").replace("{n}", state.hints)) : "") + "</p>" +
+          (state.hints === 0 ? '<p class="tg-end__note">' + esc(t("noHints")) + "</p>" : "") +
+          (next === -1 ? '<p class="tg-end__note">' + esc(t("allDone")) + "</p>" : "") +
+          '<div class="g-end__actions">' +
+            '<button type="button" class="g-btn" id="tg-again">' + esc(t("playAgain")) + "</button>" +
+            '<button type="button" class="g-btn g-btn--primary" id="tg-next">' + esc(t("nextFig")) + "</button>" +
+            '<a class="g-btn" href="' + home + '">' + esc(t("allGames")) + "</a>" +
+          "</div>" +
+        "</div>";
+      document.getElementById("tg-pic").innerHTML = coloredPicture();
+      document.getElementById("tg-again").addEventListener("click", newGame);
+      document.getElementById("tg-next").addEventListener("click", function () {
+        chooseFigure(next === -1 ? figIndex + 1 : next);
+      });
+    }
+
+    /** The finished figure in colour, built from where the child actually put the pieces. */
+    function coloredPicture() {
+      var G = state.G, u = UNIT[G.lat];
+      var all = [].concat.apply([], state.pieces.map(piecePoly));
+      var mx = Math.min.apply(null, all.map(function (p) { return p[0]; })), my = Math.min.apply(null, all.map(function (p) { return p[1]; }));
+      var sz = size(all.map(function (p) { return [p[0] - mx, p[1] - my]; }));
+      var polys = state.pieces.map(function (p) {
+        var pts = piecePoly(p).map(function (q) { return [q[0] - mx, q[1] - my]; });
+        return '<polygon points="' + ptsAttr(pts, u) + '" fill="' + p.color + '" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/>';
+      }).join("");
+      return '<svg class="tg-end__pic" viewBox="-2 -2 ' + (sz.w * u + 4) + " " + (sz.h * u + 4) + '" aria-hidden="true">' + polys + "</svg>";
+    }
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") togglePanel(false);
+    });
+
+    // Start with the first figure not built yet on this level.
+    (function () {
+      var lv = S.getLevel(GAME_ID);
+      for (var i = 0; i < FIGURES.length; i++) if (!isDone(lv, FIGURES[i].id)) { figIndex = i; return; }
+    })();
+    build();
+  })();
+  </script>
+</body>
+</html>
